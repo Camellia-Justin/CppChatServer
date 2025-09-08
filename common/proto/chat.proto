@@ -1,0 +1,158 @@
+syntax = "proto3";
+
+package chat;
+
+import "google/protobuf/timestamp.proto";
+
+//  通用信封消息 (Envelope Message)
+//  客户端和服务器之间的所有通信都包装在这个信封里
+message Envelope {
+  // 每个消息都有一个唯一的ID，用于请求-响应匹配或消息确认
+  string message_id = 1;
+
+  oneof payload {
+    LoginRequest        login_request       = 10; // 登录请求
+    LoginResponse       login_response      = 11; // 登录响应
+    RegistrationRequest registration_request = 12; // 注册请求
+    RegistrationResponse registration_response = 13; // 注册响应
+    ChangePasswordRequest change_password_request = 14; // 修改密码请求
+    ChangePasswordResponse change_password_response = 15; // 修改密码响应
+    ChangeUsernameRequest change_username_request = 16; // 修改用户名请求
+    ChangeUsernameResponse change_username_response = 17; // 修改用户名响应
+    PublicMessage       public_message      = 18; // 客户端发送的公共消息
+    MessageBroadcast    message_broadcast   = 19; // 服务器广播的消息
+
+    PrivateMessageRequest  private_message_request = 20; // 私聊请求
+    RoomOperationRequest   room_operation_request  = 21; // 房间操作请求
+    RoomOperationResponse  room_operation_response = 22; // 房间操作响应
+    HistoryMessageRequest  history_message_request = 23; // 历史消息请求
+    HistoryMessageResponse history_message_response= 24; // 历史消息响应
+    
+    ServerNotification  server_notification = 90; // 服务器通知
+    ErrorResponse       error_response      = 99; // 错误响应
+  }
+}
+
+// 客户端请求登录（设置昵称）
+message LoginRequest {
+  string username = 1; // 昵称(唯一)
+  string password = 2; // 密码
+}
+
+// 服务器对登录请求的响应
+message LoginResponse {
+  bool   success = 1;
+  string message = 2; // 例如 "登录成功" 或 "昵称已被使用"
+  string user_id = 3; // 登录成功后服务器分配的唯一ID
+}
+
+// 客户端请求注册新用户
+message RegistrationRequest {
+  string username = 1; // 昵称(唯一)
+  string password = 2; // 密码
+}
+
+// 服务器对注册请求的响应
+message RegistrationResponse {
+  bool   success = 1;
+  string message = 2; // 例如 "注册成功" 或 "昵称已被使用"
+}
+
+message ChangePasswordRequest {
+  string old_password= 1; // 旧密码
+  string new_password= 2; // 新密码
+}
+
+message ChangePasswordResponse {
+  bool   success = 1;
+  string message = 2; // 例如 "修改成功" 或 "旧密码错误"
+}
+
+message ChangeUsernameRequest {
+  string new_username= 1; // 新昵称(唯一)
+}
+
+message ChangeUsernameResponse {
+  bool   success = 1;
+  string message = 2; // 例如 "修改成功" 或 "昵称已被使用"
+  string new_username = 3; // 修改后的新昵称
+}
+
+// 客户端发送一条公共消息
+message PublicMessage {
+  string content = 1;
+}
+
+// 服务器广播的消息 (可用于公共频道或房间)
+message MessageBroadcast {
+  string                    from_user_id   = 1;
+  string                    from_username  = 2;
+  string                    content        = 3;
+  google.protobuf.Timestamp timestamp      = 4;
+  optional string           room_name      = 5; // 如果在房间内，则填写房间名
+}
+
+
+// 客户端请求发送私聊消息
+message PrivateMessageRequest {
+  string to_username = 1; // 目标用户的昵称
+  string content     = 2;
+}
+
+
+// 房间操作类型
+enum RoomOperation {
+  JOIN  = 0;
+  LEAVE = 1;
+  CREATE = 2; 
+}
+
+// 客户端请求加入/离开房间
+message RoomOperationRequest {
+  RoomOperation operation = 1;
+  string        room_name = 2;
+}
+
+// 服务器对房间操作的响应
+message RoomOperationResponse {
+  bool          success    = 1;
+  RoomOperation operation  = 2;
+  string        room_name  = 3;
+  string        message    = 4; // 例如 "成功加入"
+}
+
+
+// 客户端请求历史消息
+message HistoryMessageRequest {
+  string room_name = 1;
+  int32  limit     = 2; // 希望获取的消息数量
+}
+
+// 服务器返回历史消息
+message HistoryMessageResponse {
+  string room_name = 1;
+  // repeated 关键字表示这是一个消息列表
+  repeated MessageBroadcast messages = 2;
+}
+
+
+// 用户事件类型
+enum UserEventType {
+  USER_JOINED = 0; // 用户加入
+  USER_LEFT   = 1; // 用户离开
+}
+
+// 服务器主动推送的通知 (例如，用户加入/离开)
+message ServerNotification {
+  UserEventType event_type = 1;
+  string        user_id    = 2;
+  string        username   = 3;
+  string        message    = 4; // 例如 "JohnDoe 加入了聊天室"
+}
+
+// 通用的错误响应
+message ErrorResponse {
+  string original_message_id = 1; // 导致错误的原始请求ID
+  int32  error_code          = 2; // 错误码 (自定义)
+  string error_message       = 3; // 错误描述
+}
