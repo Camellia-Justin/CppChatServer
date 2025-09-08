@@ -45,18 +45,38 @@ std::optional<Room> MySQLRoomRepository::findByCreatorId(long long creator_id){
         return std::nullopt;
     }
 }
-std::vector<Room> MySQLRoomRepository::getAllRooms(){
-    auto conWrapper = ConnectionWrapper(&ConnectionPool::getInstance(), ConnectionPool::getInstance().getConnection());
-    soci::session& sql = *conWrapper;
-    soci::transaction tr(sql);
+// 保持你的命名和函数签名
+std::vector<Room> MySQLRoomRepository::getAllRooms() {
     std::vector<Room> rooms;
-    try{
-        sql<<"SELECT id, name, creator_id, created_at FROM rooms", soci::into(rooms);
-        tr.commit();
-    }catch(const std::exception& e){
-        std::cerr << "Error retrieving all rooms: " << e.what() << std::endl;
+
+    try {
+        auto conWrapper = ConnectionWrapper(&ConnectionPool::getInstance(),
+                                          ConnectionPool::getInstance().getConnection());
+        soci::session& sql = *conWrapper;
+
+        // SELECT 查询，不需要事务
+
+        // 1. 创建一个用于接收“单行”结果的临时 Room 对象
+        Room row;
+
+        // 2. 准备一个 statement，并将 into 绑定到这个“单行”对象上
+        soci::statement st = (sql.prepare <<
+            "SELECT id, name, creator_id, created_at FROM rooms",
+            soci::into(row));
+
+        // 3. 执行查询
+        st.execute();
+
+        // 4. 使用 while 循环和 statement::fetch() 来逐行获取数据
+        while (st.fetch()) {
+            rooms.push_back(row);
+        }
+
+    } catch (const std::exception& e) {
+        std::cerr << "Database error in getAllRooms: " << e.what() << std::endl;
         rooms.clear();
     }
+
     return rooms;
 }
 bool MySQLRoomRepository::updateRoom(Room& room){

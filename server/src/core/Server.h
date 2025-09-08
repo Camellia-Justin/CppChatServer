@@ -25,7 +25,7 @@ public:
        void onMessage(std::shared_ptr<Session> session, const chat::Envelope& envelope);
        void onDisconnect(std::shared_ptr<Session> session);
 private:
-       std::shared_ptr<asio::ip::tcp::acceptor> acceptor;
+       asio::ip::tcp::acceptor acceptor;
        asio::io_context& ioc;
 
        std::unique_ptr<IUserRepository> userRepository;
@@ -39,5 +39,4 @@ private:
        void start_accept();
        void handle_accept(const asio::error_code& ec, std::shared_ptr<Session> session);
        void dispatchMessage(std::shared_ptr<Session> session, const chat::Envelope& envelope);
-
 };

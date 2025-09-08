@@ -34,18 +34,38 @@ std::optional<User> MySQLUserRepository::findByUserId(long long id){
         return std::nullopt;
     }
 }
-std::vector<User> MySQLUserRepository::getAllUsers(){
-    auto conWrapper = ConnectionWrapper(&ConnectionPool::getInstance(), ConnectionPool::getInstance().getConnection());
-    soci::session& sql = *conWrapper;
-    soci::transaction tr(sql);
+// 保持你的命名和函数签名
+std::vector<User> MySQLUserRepository::getAllUsers() {
     std::vector<User> users;
-    try{
-        sql<<"SELECT id, username, hashed_password, salt, created_at FROM users", soci::into(users);
-        tr.commit();
-    }catch(const std::exception& e){
-        std::cerr << "Error retrieving all users: " << e.what() << std::endl;
+
+    try {
+        auto conWrapper = ConnectionWrapper(&ConnectionPool::getInstance(),
+                                          ConnectionPool::getInstance().getConnection());
+        soci::session& sql = *conWrapper;
+        
+        // SELECT 查询，不需要事务
+
+        // 1. 创建一个用于接收“单行”结果的临时 User 对象
+        User row;
+
+        // 2. 准备一个 statement，并将 into 绑定到这个“单行”对象上
+        soci::statement st = (sql.prepare <<
+            "SELECT id, username, hashed_password, salt, created_at FROM users",
+            soci::into(row));
+
+        // 3. 执行查询
+        st.execute();
+
+        // 4. 使用 while 循环和 statement::fetch() 来逐行获取数据
+        while (st.fetch()) {
+            users.push_back(row);
+        }
+
+    } catch (const std::exception& e) {
+        std::cerr << "Database error in getAllUsers: " << e.what() << std::endl;
         users.clear();
     }
+
     return users;
 }
 bool MySQLUserRepository::updateUser(User& user){

@@ -4,7 +4,7 @@
 #include <iostream>
 
 int main() {
-    if (!ConfigManager::getInstance().load("config.json")) {
+    if (!ConfigManager::getInstance().load("config.example.json")) {
         return 1;
     }
     try {

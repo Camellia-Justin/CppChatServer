@@ -62,67 +62,92 @@ std::optional<Message> MySQLMessageRepository::findByMessageId(long long id){
         return std::nullopt;
     }
 }
-std::vector<Message> MySQLMessageRepository::findBySenderId(long long sender_id){
-    auto conWrapper = ConnectionWrapper(&ConnectionPool::getInstance(), ConnectionPool::getInstance().getConnection());
-    soci::session& sql = *conWrapper;
-    soci::transaction tr(sql);
+std::vector<Message> MySQLMessageRepository::findBySenderId(long long sender_id) {
     std::vector<Message> messages;
-    try{
-        sql<<"SELECT id, room_id, sender_id, content, created_at FROM messages WHERE sender_id = :sender_id", soci::use(sender_id), soci::into(messages);
-        tr.commit();
-    }catch(const std::exception& e){
-        std::cerr << "Error finding messages by sender ID: " << e.what() << std::endl;
-        messages.clear();
-    }
-    return messages;
-}
-std::vector<Message> MySQLMessageRepository::findByRoomId(long long room_id){
-    auto conWrapper = ConnectionWrapper(&ConnectionPool::getInstance(), ConnectionPool::getInstance().getConnection());
-    soci::session& sql = *conWrapper;
-    soci::transaction tr(sql);
-    std::vector<Message> messages;
-    try{
-        sql<<"SELECT id, room_id, sender_id, content, created_at FROM messages WHERE room_id = :room_id", soci::use(room_id), soci::into(messages);
-        tr.commit();
-    }catch(const std::exception& e){
-        std::cerr << "Error finding messages by room ID: " << e.what() << std::endl;
-        messages.clear();
-    }
-    return messages;
-}
-std::vector<Message> MySQLMessageRepository::findByContent(const std::string& content){
-    auto conWrapper = ConnectionWrapper(&ConnectionPool::getInstance(), ConnectionPool::getInstance().getConnection());
-    soci::session& sql = *conWrapper;
-    soci::transaction tr(sql);
-     std::vector<Message> messages;
-    try{
-        soci::rowset<Message> rs=(sql.prepare<<"SELECT id, room_id, sender_id, content, created_at FROM messages WHERE content LIKE CONCAT('%',:content,'%')", soci::use(content,"content"));
-        for(const auto& msg : rs){
-            messages.push_back(msg);
+    try {
+        auto conWrapper = ConnectionWrapper(&ConnectionPool::getInstance(),
+                                          ConnectionPool::getInstance().getConnection());
+        soci::session& sql = *conWrapper;
+        Message row;
+        soci::statement st = (sql.prepare <<
+            "SELECT id, room_id, sender_id, content, created_at "
+            "FROM messages WHERE sender_id = :sender_id",
+            soci::into(row),
+            soci::use(sender_id, "sender_id"));
+        st.execute();
+        while (st.fetch()) {
+            messages.push_back(row);
         }
-        tr.commit();
 
-    }catch(const std::exception& e){
-        std::cerr << "Error finding messages by content: " << e.what() << std::endl;
+    } catch (const std::exception& e) {
+        std::cerr << "Database error in findBySenderId: " << e.what() << std::endl;
         messages.clear();
     }
     return messages;
 }
-std::vector<Message> MySQLMessageRepository::findLatestByRoomId(long long roomId, int limit){
-    auto conWrapper = ConnectionWrapper(&ConnectionPool::getInstance(), ConnectionPool::getInstance().getConnection());
-    soci::session& sql = *conWrapper;
-    soci::transaction tr(sql);
+std::vector<Message> MySQLMessageRepository::findByRoomId(long long room_id) {
     std::vector<Message> messages;
-    try{
-        soci::rowset<Message> rs=(sql.prepare<<"SELECT id, room_id, sender_id, content, created_at FROM messages WHERE room_id = :room_id ORDER BY created_at DESC LIMIT :limit", soci::use(roomId,"room_id"), soci::use(limit,"limit"));
-        for(const auto& msg : rs){
-            messages.push_back(msg);
+    try {
+        auto conWrapper = ConnectionWrapper(&ConnectionPool::getInstance(),
+                                          ConnectionPool::getInstance().getConnection());
+        soci::session& sql = *conWrapper;
+        Message row;
+        soci::statement st = (sql.prepare <<
+            "SELECT id, room_id, sender_id, content, created_at "
+            "FROM messages WHERE room_id = :room_id "
+            "ORDER BY created_at ASC",
+            soci::into(row),
+            soci::use(room_id, "room_id"));
+        st.execute();
+        while (st.fetch()) {
+            messages.push_back(row);
         }
-        tr.commit();
-    }catch(const std::exception& e){
-        std::cerr << "Error finding messages by content: " << e.what() << std::endl;
+    } catch (const std::exception& e) {
+        std::cerr << "Database error in findByRoomId: " << e.what() << std::endl;
         messages.clear();
     }
+    return messages;
+}
+std::vector<Message> MySQLMessageRepository::findByContent(const std::string& content) {
+    std::vector<Message> messages;
+    try {
+        auto conWrapper = ConnectionWrapper(&ConnectionPool::getInstance(),
+                                          ConnectionPool::getInstance().getConnection());
+        soci::session& sql = *conWrapper;
+        soci::rowset<Message> rs = (sql.prepare <<
+            "SELECT id, room_id, sender_id, content, created_at "
+            "FROM messages WHERE content LIKE CONCAT('%', :content, '%')",
+            soci::use(content, "content"));
+        for (const auto& msg : rs) {
+            messages.push_back(msg);
+        }
+    } catch (const std::exception& e) {
+        std::cerr << "Database error in findByContent: " << e.what() << std::endl;
+        messages.clear();
+    }
+    return messages;
+}
+std::vector<Message> MySQLMessageRepository::findLatestByRoomId(long long roomId, int limit) {
+    std::vector<Message> messages;
+
+    try {
+        auto conWrapper = ConnectionWrapper(&ConnectionPool::getInstance(),
+                                          ConnectionPool::getInstance().getConnection());
+        soci::session& sql = *conWrapper;
+        soci::rowset<Message> rs = (sql.prepare <<
+            "SELECT id, room_id, sender_id, content, created_at "
+            "FROM messages WHERE room_id = :roomId "
+            "ORDER BY created_at DESC LIMIT :limit",
+            soci::use(roomId, "roomId"), 
+            soci::use(limit, "limitValue"));
+        for (const auto& msg : rs) {
+            messages.push_back(msg);
+        }
+    } catch (const std::exception& e) {
+        std::cerr << "Database error in findLatestByRoomId: " << e.what() << std::endl;
+        messages.clear();
+    }
+
     return messages;
 }
 

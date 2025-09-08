@@ -1,14 +1,14 @@
 {
   "server": {
-    "host": "",
-    "port": ""
+    "host": "192.168.31.89",
+    "port": 12345
   },
   "database": {
-    "type": "",
-    "host": "",
-    "port": "",
-    "user": "",
-    "password": "",
-    "dbname": ""
+    "type": "mysql",
+    "host": "127.0.0.1",
+    "port": 3306,
+    "user": "root",
+    "password": "123123",
+    "dbname": "chat_server_db"
   }
 }

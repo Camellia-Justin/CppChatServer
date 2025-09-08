@@ -36,6 +36,7 @@ compile_commands.json
 # -------------------------------------------------------------------
 # Visual Studio Code
 .vscode/
+.vs
 # 如果你只想共享 launch.json 和 tasks.json，但不想共享个人设置
 # 可以使用更精细的规则：
 # .vscode/*

@@ -12,8 +12,8 @@
 
 Server::Server(asio::io_context& io_context,unsigned short port)
 :ioc(io_context),
- acceptor(std::make_shared<asio::ip::tcp::acceptor>(io_context,asio::ip::tcp::endpoint(asio::ip::tcp::v4(),port))){
-    
+ acceptor(io_context, asio::ip::tcp::endpoint(asio::ip::tcp::v4(), port)){
+
     userRepository = std::make_unique<MySQLUserRepository>();
     roomRepository = std::make_unique<MySQLRoomRepository>();
     messageRepository = std::make_unique<MySQLMessageRepository>();
@@ -29,22 +29,23 @@ void Server::run(){
 }
 void Server::start_accept(){
     std::shared_ptr<asio::ip::tcp::socket> sock_ptr = std::make_shared<asio::ip::tcp::socket>(ioc);
-    acceptor->async_accept(*sock_ptr,
+    acceptor.async_accept(*sock_ptr,
         [this,sock_ptr](const asio::error_code& ec){
             handle_accept(ec,std::make_shared<Session>(sock_ptr,*this));
-        });
+        }
+    );
 }
 void Server::handle_accept(const asio::error_code& ec, std::shared_ptr<Session> session){
     if(!ec){
         try{
             std::cout<<"New connection from "<<session->socket_ptr->remote_endpoint().address().to_string()<<":"<<session->socket_ptr->remote_endpoint().port()<<std::endl; 
-        session->start();
+            session->start();
         }catch(const std::exception& e){
             std::cerr<<"Exception in starting session: "<<e.what()<<std::endl;
         }
     }else {
-    std::cout << "Error accepting connection: " << ec.message() << std::endl;
-}
+        std::cout << "Error accepting connection: " << ec.message() << std::endl;
+    }
     start_accept();
 }
 void Server::onMessage(std::shared_ptr<Session> session, const chat::Envelope& envelope){

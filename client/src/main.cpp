@@ -67,7 +67,6 @@ int main(int argc, char* argv[]) {
                 req->set_operation(chat::RoomOperation::LEAVE);
             }
             else {
-                // 使用我们之前讨论的正则来区分公聊和私聊
                 static const std::regex pm_pattern("^@(\\S+)\\s+(.+)");
                 std::smatch match;
                 if (std::regex_match(line, match, pm_pattern)) {
