@@ -1,8 +1,9 @@
 #pragma once
 
-#include <nlohmann/json.hpp>
+
 #include <string>
 #include <stdexcept>
+#include <nlohmann/json.hpp>
 
 using json = nlohmann::json;
 

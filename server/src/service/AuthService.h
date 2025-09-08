@@ -1,11 +1,11 @@
 #pragma once
 
 #include <string>
-#include "data/IUserRepository.h"
-#include "core/SessionManager.h"
-#include "session/Session.h"
-#include "util/Crypto.h"
 #include "chat.pb.h"
+#include "session/Session.h"
+#include "core/SessionManager.h"
+#include "data/IUserRepository.h"
+#include "util/Crypto.h"
 class AuthService {
 public:
     AuthService(IUserRepository* userRepository, SessionManager* sessionManager): userRepository(userRepository), sessionManager(sessionManager) {}

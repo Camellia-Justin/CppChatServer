@@ -4,6 +4,8 @@
 #include <chrono>
 class Room{
 public:
+    Room() = default;
+    ~Room() = default;
     long long getId() const { return id; }
     void setId(long long newId) { id = newId; }
 

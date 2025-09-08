@@ -6,6 +6,8 @@
 
 class User{
 public:
+    User() = default;
+    ~User() = default;
     int getId() const { return id; }
     void setId(int newId) { id = newId; }
 

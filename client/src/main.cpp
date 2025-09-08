@@ -1,5 +1,5 @@
 // client/src/main.cpp
-#include "Client.h"
+#include "client.h"
 #include <iostream>
 #include <string>
 #include <thread>

@@ -1,22 +1,8 @@
 #include "MySQLRoomRepository.h"
 #include "ConnectionPool.h"
-#include <soci/soci.h>
-#include <soci/mysql/soci-mysql.h>
+#include "DataAccess.h"
 #include <iostream>
-template<>
-struct soci::type_conversion<Room>{
-    static void from_base(soci::values& v, indicator,Room& room){
-        room.setId(v.get<long long>("id"));
-        room.setName(v.get<std::string>("name"));
-        room.setCreatorId(v.get<long long>("creator_id"));
-        room.setCreatedAt(v.get<std::chrono::system_clock::time_point>("created_at"));
-    }
-    static void to_base(const Room& room, soci::values& v, soci::indicator& ind){
-        v.set("name", room.getName());
-        v.set("creator_id", room.getCreatorId());
-        ind = soci::i_ok;
-    }
-};
+
 std::optional<Room> MySQLRoomRepository::findByRoomId(long long id){
     auto conWrapper = ConnectionWrapper(&ConnectionPool::getInstance(), ConnectionPool::getInstance().getConnection());
     soci::session& sql = *conWrapper;

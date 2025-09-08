@@ -1,26 +1,11 @@
 #include "MySQLUserRepository.h"
 #include "ConnectionPool.h"
-#include <soci/soci.h>
-#include <soci/mysql/soci-mysql.h>
+#include "DataAccess.h"
 #include <iostream>
 #include <vector>
 #include <optional>
-template<>
-struct soci::type_conversion<User>{
-    static void from_base(soci::values& v, indicator,User& user){
-        user.setId(v.get<long long>("id"));
-        user.setUsername(v.get<std::string>("username"));
-        user.setHashedPassword(v.get<std::string>("hashed_password"));
-        user.setSalt(v.get<std::string>("salt"));
-        user.setCreatedAt(v.get<std::chrono::system_clock::time_point>("created_at"));
-    }
-    static void to_base(const User& user, soci::values& v, soci::indicator& ind){
-        v.set("username", user.getUsername());
-        v.set("hashed_password", user.getHashedPassword());
-        v.set("salt", user.getSalt());
-        ind = soci::i_ok;
-    }
-};
+
+
 std::optional<User> MySQLUserRepository::findByUsername(const std::string& username){
     auto conWrapper = ConnectionWrapper(&ConnectionPool::getInstance(), ConnectionPool::getInstance().getConnection());
     soci::session& sql = *conWrapper;

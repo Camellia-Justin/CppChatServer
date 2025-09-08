@@ -1,4 +1,4 @@
-#include "Client.h"
+#include "client.h"
 #include <iostream>
 #include <google/protobuf/util/time_util.h>
 
@@ -173,5 +173,12 @@ void Client::handle_server_message(const Envelope& envelope) {
         default:
             std::cout << "[System] Received an unhandled message type from server." << std::endl;
             break;
+    }
+}
+void Client::handle_error(const std::string& where, const std::error_code& ec) {
+    if (ec == asio::error::eof) {
+        std::cout << "[System] Connection closed by server (" << where << ")." << std::endl;
+    } else if (ec) {
+        std::cerr << "[Error] in " << where << ": " << ec.message() << std::endl;
     }
 }

@@ -20,6 +20,7 @@ public:
        Server(asio::io_context& io_context,unsigned short port);
        Server(const Server&) = delete; 
        Server& operator=(const Server&) = delete;
+       ~Server(); 
        void run();
        void onMessage(std::shared_ptr<Session> session, const chat::Envelope& envelope);
        void onDisconnect(std::shared_ptr<Session> session);

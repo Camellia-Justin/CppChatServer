@@ -32,7 +32,7 @@
                 chat::Envelope joinNotification;
                 auto* notification = joinNotification.mutable_server_notification();
                 notification->set_event_type(chat::UserEventType::USER_JOINED);
-                notification->set_user_id(userId);
+                notification->set_user_id(std::to_string(userId));
                 notification->set_username(session->getUsername());
                 notification->set_message("User "+session->getUsername()+" has joined the room.");
                 broadcastToRoom(roomname, joinNotification, userId);
@@ -59,7 +59,7 @@
                 chat::Envelope leaveNotification;
                 auto* notification = leaveNotification.mutable_server_notification();
                 notification->set_event_type(chat::UserEventType::USER_LEFT);
-                notification->set_user_id(userId);
+                notification->set_user_id(std::to_string(userId));
                 notification->set_username(session->getUsername());
                 notification->set_message("User "+session->getUsername()+" has left the room.");
                 broadcastToRoom(roomname, leaveNotification, userId);
@@ -117,7 +117,7 @@
         std::vector<Message> messages(std::move(messageRepository->findLatestByRoomId(roomId, limit)));
         for(const auto& msg:messages){
             auto* historyMsg = response.mutable_history_message_response()->add_messages();
-            historyMsg->set_from_user_id(msg.getSenderId());
+            historyMsg->set_from_user_id(std::to_string(msg.getSenderId()));
             historyMsg->set_from_username(userRepository->findByUserId(msg.getSenderId())->getUsername());
             historyMsg->set_content(msg.getContent());
             historyMsg->set_room_name(roomname);
@@ -139,7 +139,7 @@
             chat::Envelope leaveNotification;
             auto* notification = leaveNotification.mutable_server_notification();
             notification->set_event_type(chat::UserEventType::USER_LEFT);
-            notification->set_user_id(userId);
+            notification->set_user_id(std::to_string(userId));
             notification->set_username(session->getUsername());
             notification->set_message("User "+session->getUsername()+" has left the room.");
             broadcastToRoom(roomName, leaveNotification, userId);

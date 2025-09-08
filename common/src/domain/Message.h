@@ -4,6 +4,9 @@
 #include <chrono>
 class Message{
 public:
+    Message() = default;
+    ~Message() = default;
+    
     long long getId() const { return id; }
     void setId(long long newId) { id = newId; }
 

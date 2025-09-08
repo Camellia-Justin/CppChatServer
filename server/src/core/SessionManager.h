@@ -12,6 +12,8 @@ namespace chat{
 
 class SessionManager {
 public:
+    SessionManager() = default;
+    ~SessionManager() = default;
     void add(std::shared_ptr<Session> s);
     void remove(std::shared_ptr<Session> s);
     void updateUsername(std::shared_ptr<Session> s, const std::string& newUsername);

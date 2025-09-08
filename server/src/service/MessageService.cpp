@@ -25,7 +25,7 @@ void MessageService::handlePublicMessage(std::shared_ptr<Session> session, const
     messageRepository->addMessage(message);
 
     auto* messageBroadcast = response.mutable_message_broadcast();
-    messageBroadcast->set_from_user_id(senderId);
+    messageBroadcast->set_from_user_id(std::to_string(senderId));
     messageBroadcast->set_from_username(session->getUsername());
     messageBroadcast->set_content(publicMessage.content());
     messageBroadcast->set_room_name(roomName);
@@ -83,7 +83,7 @@ void MessageService::handlePrivateMessage(std::shared_ptr<Session> session, cons
     message.setContent(privateMessage.content());
     messageRepository->addMessage(message);
     auto* messageBroadcast = response.mutable_message_broadcast();
-    messageBroadcast->set_from_user_id(senderId);   
+    messageBroadcast->set_from_user_id(std::to_string(senderId));
     messageBroadcast->set_from_username(senderName);
     messageBroadcast->set_content(privateMessage.content());
     messageBroadcast->set_room_name(roomname);

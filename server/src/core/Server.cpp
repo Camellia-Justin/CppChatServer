@@ -1,13 +1,13 @@
-#include "Server.h"
 #include "chat.pb.h"
-#include "core/SessionManager.h"
 #include "session/Session.h"
-#include "service/AuthService.h"
-#include "service/RoomService.h"
-#include "service/MessageService.h"
+#include "core/SessionManager.h"
 #include "data/MySQLUserRepository.h"
 #include "data/MySQLRoomRepository.h"
 #include "data/MySQLMessageRepository.h"
+#include "service/AuthService.h"
+#include "service/RoomService.h"
+#include "service/MessageService.h"
+#include "Server.h"
 #include <iostream>
 
 Server::Server(asio::io_context& io_context,unsigned short port)
@@ -19,10 +19,11 @@ Server::Server(asio::io_context& io_context,unsigned short port)
     messageRepository = std::make_unique<MySQLMessageRepository>();
 
     sessionManager = std::make_unique<SessionManager>();
-    authService = std::make_unique<AuthService>(*userRepository,*sessionManager);
-    roomService = std::make_unique<RoomService>(*roomRepository,*userRepository,*messageRepository,*sessionManager);
-    messageService = std::make_unique<MessageService>(*messageRepository,*sessionManager,*roomService);
+    authService = std::make_unique<AuthService>(userRepository.get(), sessionManager.get());
+    roomService = std::make_unique<RoomService>(roomRepository.get(), userRepository.get(), messageRepository.get(), sessionManager.get());
+    messageService = std::make_unique<MessageService>(messageRepository.get(), sessionManager.get(), roomService.get());
 }
+Server::~Server() = default;
 void Server::run(){
     start_accept();
 }

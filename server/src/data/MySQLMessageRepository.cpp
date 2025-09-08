@@ -1,26 +1,10 @@
 #include "MySQLMessageRepository.h"
 #include "ConnectionPool.h"
-#include <soci/soci.h>
-#include <soci/mysql/soci-mysql.h>
+#include "DataAccess.h"
 #include <iostream>
 #include <set>
 
-template<>
-struct soci::type_conversion<Message>{
-    static void from_base(soci::values& v, indicator,Message& msg){
-        msg.setId(v.get<long long>("id"));
-        msg.setRoomId(v.get<long long>("room_id"));
-        msg.setSenderId(v.get<long long>("sender_id"));
-        msg.setContent(v.get<std::string>("content"));
-        msg.setCreatedAt(v.get<std::chrono::system_clock::time_point>("created_at"));
-    }
-    static void to_base(const Message& msg, soci::values& v, soci::indicator& ind){
-        v.set("room_id", msg.getRoomId());
-        v.set("sender_id", msg.getSenderId());
-        v.set("content", msg.getContent());
-        ind = soci::i_ok;
-    }
-};
+
 bool MySQLMessageRepository::addMessage(Message& msg){
     try{
         auto conWrapper = ConnectionWrapper(&ConnectionPool::getInstance(), ConnectionPool::getInstance().getConnection());
