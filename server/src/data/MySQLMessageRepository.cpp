@@ -11,7 +11,9 @@ bool MySQLMessageRepository::addMessage(Message& msg){
         soci::session& sql = *conWrapper;
         soci::transaction tr(sql);
         sql << "INSERT INTO messages (room_id, sender_id, content) VALUES (:room_id, :sender_id, :content)",
-            soci::use(msg);
+            soci::use(msg.getRoomId(), "room_id"),
+            soci::use(msg.getSenderId(), "sender_id"),
+            soci::use(msg.getContent(), "content");
          long long newId;
         if (!sql.get_last_insert_id("messages", newId)) {
             std::cerr << "Failed to get last insert ID for messages." << std::endl;
@@ -53,8 +55,7 @@ std::optional<Message> MySQLMessageRepository::findByMessageId(long long id){
     soci::transaction tr(sql);
     try{
         Message msg;
-        soci::statement st = (sql.prepare <<
-            sql << "SELECT id, room_id, sender_id, content, created_at FROM messages WHERE id = :id", 
+        soci::statement st = (sql.prepare << "SELECT id, room_id, sender_id, content, created_at FROM messages WHERE id = :id", 
             soci::use(id), soci::into(msg));
         st.execute(true);
         if (st.fetch()) {

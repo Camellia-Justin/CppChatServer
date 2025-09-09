@@ -33,7 +33,7 @@ Client::Client(asio::io_context& io_context)
 //}
 // client/src/ChatClient.cpp
 
-void Client::connect(const std::string& host, unsigned short port) {
+void Client::connect(const std::string& host, unsigned short port, std::function<void(const asio::error_code&)> handler) {
     auto self = shared_from_this();
     asio::error_code ec;
 
@@ -52,7 +52,8 @@ void Client::connect(const std::string& host, unsigned short port) {
 
     // 3. 直接在 socket 上调用 async_connect
     socket.async_connect(endpoint,
-        [this, self](const asio::error_code& ec) {
+        [this, self,handler](const asio::error_code& ec) {
+			handler(ec); 
             if (!ec) {
                 std::cout << "[System] Successfully initiated connection to "
                     << socket.remote_endpoint() << std::endl;

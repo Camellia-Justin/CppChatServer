@@ -78,11 +78,29 @@ namespace soci{
         typedef values base_type;
         static void from_base(const values& v, indicator /*ind*/,Room& room){
             try {
-                int id_val = v.get<int>("id");
-                int creator_id_val = v.get<int>("creator_id");
-				room.setId(static_cast<long long>(id_val));
-				room.setName(v.get<std::string>("name"));
-				room.setCreatorId(static_cast<long long>(creator_id_val));
+                // 安全读取 id
+                if (v.get_indicator("id") == i_ok) {
+                    room.setId(v.get<long long>("id"));
+                }
+                else {
+                    std::cerr << "[WARNING] Column 'id' not found or is NULL!" << std::endl;
+                }
+
+                // 安全读取 name
+                if (v.get_indicator("name") == i_ok) {
+                    room.setName(v.get<std::string>("name"));
+                }
+                else {
+                    std::cerr << "[WARNING] Column 'name' not found or is NULL!" << std::endl;
+                }
+
+                // 安全读取 creator_id
+                if (v.get_indicator("creator_id") == i_ok) {
+                    room.setCreatorId(v.get<long long>("creator_id"));
+                }
+                else {
+                    std::cerr << "[WARNING] Column 'creator_id' not found or is NULL!" << std::endl;
+                }
                 // created_at 可能是 NULL，需要检查
                 if (v.get_indicator("created_at") == i_ok) {
                     try {

@@ -114,7 +114,10 @@ bool MySQLUserRepository::updateUser(User& user){
     soci::session& sql = *conWrapper;
     soci::transaction tr(sql);
     try{
-    soci::statement st=(sql.prepare<<"UPDATE users SET username = :username, hashed_password = :hashed_password, salt = :salt WHERE id = :id",soci::use(user));
+    soci::statement st=(sql.prepare<<"UPDATE users SET username = :username, hashed_password = :hashed_password, salt = :salt WHERE id = :id",
+        soci::use(user.getUsername(),"username"),
+        soci::use(user.getHashedPassword(),"hashed_password"),
+        soci::use(user.getSalt(),"salt"));
     st.execute(true);
         if (st.get_affected_rows() > 0) {
             tr.commit();

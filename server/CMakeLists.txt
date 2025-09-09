@@ -14,7 +14,7 @@ add_executable(server ${SERVER_SOURCES})
 target_include_directories(server PRIVATE 
     "${CMAKE_CURRENT_SOURCE_DIR}/src"
      ${CMAKE_BINARY_DIR}
-     "${CMAKE_BINARY_DIR}/common"
+    "${CMAKE_BINARY_DIR}/common"
 )
 
 # 链接依赖，使用 vcpkg 提供的导入目标

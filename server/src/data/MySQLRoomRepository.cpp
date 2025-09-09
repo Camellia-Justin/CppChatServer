@@ -119,7 +119,8 @@ bool MySQLRoomRepository::updateRoom(Room& room){
     soci::session& sql = *conWrapper;
     soci::transaction tr(sql);
     try{
-        soci::statement st=(sql.prepare<<"UPDATE rooms SET name = :name WHERE id = :id",soci::use(room));
+        soci::statement st=(sql.prepare<<"UPDATE rooms SET name = :name WHERE id = :id",
+            soci::use(room.getName(),"name"));
         st.execute(true);
         if (st.get_affected_rows() > 0) {
             tr.commit();
@@ -139,20 +140,34 @@ bool MySQLRoomRepository::addRoom(Room& room){
     soci::session& sql = *conWrapper;
     soci::transaction tr(sql);
     try{
-        sql<<"INSERT INTO rooms (name, creator_id) VALUES (:name, :creator_id)", soci::use(room);
+        sql << "INSERT INTO rooms (name, creator_id) VALUES (:name, :creator_id)",
+            soci::use(room.getName(), "name"),
+            soci::use(room.getCreatorId(), "creator_id");
         long long newId;
         if(!sql.get_last_insert_id("rooms", newId)){
             std::cerr << "Failed to get last insert ID for rooms." << std::endl;
             return false;
         }
         room.setId(newId);
-        try{
-            std::chrono::system_clock::time_point createdAt;
-            sql << "SELECT created_at FROM rooms WHERE id = :id", soci::use(newId), soci::into(createdAt);
-            room.setCreatedAt(createdAt);
-        }catch(const std::exception& e){ 
+        try {
+            std::tm created_tm = {};
+            soci::indicator ind;
+
+            sql << "SELECT created_at FROM rooms WHERE id = :id",
+                soci::use(newId),
+                soci::into(created_tm, ind);
+
+            if (ind == soci::i_ok) {
+                // 手动转换为 time_point
+                room.setCreatedAt(std::chrono::system_clock::from_time_t(std::mktime(&created_tm)));
+            }
+            else {
+                std::cerr << "[WARNING] created_at is NULL or no data for id=" << newId << std::endl;
+                room.setCreatedAt(std::chrono::system_clock::now());
+            }
+        }
+        catch (const std::exception& e) {
             std::cerr << "Error retrieving created_at: " << e.what() << std::endl;
-            return false;
         }
         tr.commit();
         return true;

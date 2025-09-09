@@ -38,8 +38,14 @@ int main(int argc, char* argv[]) {
         client = std::make_shared<Client>(io_context);
 
         // 2. 发起连接 (这是异步的)
-        client->connect(argv[1], std::stoi(argv[2]));
-        
+        client->connect(argv[1], std::stoi(argv[2]), [](const asio::error_code& ec) {
+            if (!ec) {
+                std::cout << "[System] Successfully connected to server." << std::endl;
+            } else {
+                std::cerr << "[System] Failed to connect to server: " << ec.message() << std::endl;
+            }
+        });
+
         std::thread input_thread([]() {
             print_help();
 

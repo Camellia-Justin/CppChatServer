@@ -14,15 +14,18 @@ using Envelope = chat::Envelope;
 class Client : public std::enable_shared_from_this<Client> {
 public:
     Client(asio::io_context& io_context);
-    void connect(const std::string& host, unsigned short port);
+	virtual ~Client() = default;
+    void connect(const std::string& host, unsigned short port,std::function<void(const asio::error_code&)> handler);
     void close();
     void send(const Envelope& envelope);
     std::string getCurrentRoom() const { return currentRoom; }
     void setCurrentRoom(const std::string& roomName) { currentRoom = roomName; }
+protected:
+    virtual void handle_server_message(const Envelope& envelope); // 处理收到的消息
 private:
     void do_read_header();
     void do_read_body(uint32_t body_length);
-    void handle_server_message(const Envelope& envelope); // 处理收到的消息
+    
 
     void do_write();
     void handle_write(const asio::error_code& ec, size_t bytes_transferred);
