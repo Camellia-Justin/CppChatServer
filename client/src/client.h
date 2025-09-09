@@ -6,6 +6,7 @@
 #include <string>
 #include <deque>
 #include <thread>
+#include <asio/executor_work_guard.hpp>
 #include "chat.pb.h"
 
 using Envelope = chat::Envelope;
@@ -16,7 +17,8 @@ public:
     void connect(const std::string& host, unsigned short port);
     void close();
     void send(const Envelope& envelope);
-
+    std::string getCurrentRoom() const { return currentRoom; }
+    void setCurrentRoom(const std::string& roomName) { currentRoom = roomName; }
 private:
     void do_read_header();
     void do_read_body(uint32_t body_length);
@@ -29,6 +31,7 @@ private:
 
     asio::io_context& io_context;
     asio::ip::tcp::socket socket;
+    asio::executor_work_guard<asio::io_context::executor_type> work_guard;
     
     std::array<char, 4> read_header;
     std::vector<char> read_body;
@@ -36,4 +39,6 @@ private:
     std::deque<std::string> write_queue;
     uint32_t header = 4;
     static const uint32_t max_body_length = 8192;
+
+    std::string currentRoom;
 };

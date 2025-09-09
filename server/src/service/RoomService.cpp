@@ -8,7 +8,7 @@
         long long userId = session->getUserId();
         std::string roomname = request.room_name();
         switch (request.operation()){
-            case 0://join
+        case chat::RoomOperation::JOIN://join
             {
                 {
                     std::lock_guard lock(mutex);
@@ -38,7 +38,7 @@
                 broadcastToRoom(roomname, joinNotification, userId);
                 break;
             }
-            case 1://left
+            case chat::RoomOperation::LEAVE://left
             {
                 {
                     std::lock_guard lock(mutex);
@@ -65,7 +65,7 @@
                 broadcastToRoom(roomname, leaveNotification, userId);
                 break;
             }
-            case 2://create
+            case chat::RoomOperation::CREATE://create
             {
                 if (roomRepository->findByRoomName(roomname)) {
                     response.mutable_room_operation_response()->set_success(false);
@@ -75,17 +75,21 @@
                 Room room;
                 room.setName(roomname);
                 room.setCreatorId(userId);
-                roomRepository->addRoom(room);
-                {
-                    std::lock_guard lock(mutex);
-                    userToRoomMap[userId]=roomname;
-                    activeRooms[roomname].id = room.getId();
-                    activeRooms[roomname].creator_id = userId;
-                    activeRooms[roomname].name = room.getName();
-                    activeRooms[roomname].members[userId]=session;
+                if (roomRepository->addRoom(room)) {
+                    {
+                        std::lock_guard lock(mutex);
+                        userToRoomMap[userId] = roomname;
+                        activeRooms[roomname].id = room.getId();
+                        activeRooms[roomname].creator_id = userId;
+                        activeRooms[roomname].name = room.getName();
+                        activeRooms[roomname].members[userId] = session;
+                    }
+                    response.mutable_room_operation_response()->set_success(true);
+                    response.mutable_room_operation_response()->set_message("Created room " + roomname + " successfully.");
+                }else {
+                    response.mutable_room_operation_response()->set_success(false);
+                    response.mutable_room_operation_response()->set_message("Created room " + roomname + " failed.");
                 }
-                response.mutable_room_operation_response()->set_success(true);
-                response.mutable_room_operation_response()->set_message("Created room "+roomname+" successfully.");
                 break;
             }
             default:
@@ -154,7 +158,7 @@
             userToRoomMap.erase(userIt);
         }
     }
-    std::string RoomService::getUserCurrentRoomName(int userId){
+    std::string RoomService::getUserCurrentRoomName(long long userId){
         std::lock_guard lock(mutex);
         auto it = userToRoomMap.find(userId);
         if (it != userToRoomMap.end()) {
@@ -162,7 +166,7 @@
         }
         return "";
     }
-    long long RoomService::getUserCurrentRoomId(int userId){
+    long long RoomService::getUserCurrentRoomId(long long userId){
         std::lock_guard lock(mutex);
         auto it = userToRoomMap.find(userId);
         if (it != userToRoomMap.end()) {
@@ -174,7 +178,7 @@
         }
         return 0;
     }
-    void RoomService::broadcastToRoom(const std::string& roomName, const chat::Envelope& envelope, int excludeUserId) {
+    void RoomService::broadcastToRoom(const std::string& roomName, const chat::Envelope& envelope, long long excludeUserId) {
         std::vector<std::shared_ptr<Session>> recipients;
         { 
             std::lock_guard<std::mutex> lock(mutex);

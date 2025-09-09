@@ -10,39 +10,66 @@ void AuthService::handleLogin(std::shared_ptr<Session> session, const chat::Logi
         return;
     }
     User user = *userOpt;
-    if(user.getHashedPassword() != Crypto::hashPassword(loginRequest.password(), user.getSalt())){
+    const std::string& stored_salt = user.getSalt();
+    const std::string& stored_hash = user.getHashedPassword();
+    const std::string& new_hash_attempt = Crypto::hashPassword(loginRequest.password(), stored_salt);
+    std::cout << "\n\n======= HASH COMPARISON DIAGNOSTICS =======" << std::endl;
+    Crypto::print_string_details("Stored Hash (from DB)", stored_hash);
+    Crypto::print_string_details("New Hash (just generated)", new_hash_attempt);
+    std::cout << "===========================================\n\n" << std::endl;
+    // ========================================================
+
+    // 现在进行比较
+    if (new_hash_attempt == stored_hash) {
+        std::cout << "Password verification SUCCESSFUL." << std::endl;
+        sessionManager->registerAuthenticatedSession(session, user.getId(), user.getUsername());
+
+        auto* login_resp = response_envelope.mutable_login_response();
+        login_resp->set_success(true);
+        login_resp->set_user_id(std::to_string(user.getId()));
+        login_resp->set_message("Login successful. Welcome, " + user.getUsername() + "!");
+        session->send(response_envelope);
+    }
+    else{
         auto* err_resp = response_envelope.mutable_error_response();
         err_resp->set_error_message("Password incorrect.");
         session->send(response_envelope);
-        return;
     }
-    sessionManager->registerAuthenticatedSession(session, user.getId(), user.getUsername());
     
-    auto* login_resp = response_envelope.mutable_login_response();
-    login_resp->set_success(true);
-    login_resp->set_user_id(std::to_string(user.getId()));
-    login_resp->set_message("Login successful. Welcome, " + user.getUsername() + "!");
-    session->send(response_envelope);
 }
 void AuthService::handleRegister(std::shared_ptr<Session> session, const chat::RegistrationRequest& registrationRequest){
-    chat::Envelope response_envelope;
+    std::cout << "[DEBUG] AuthService: Handling registration for username: '"
+        << registrationRequest.username() << "'" << std::endl;
+	chat::Envelope response_envelope;
     if(userRepository->findByUsername(registrationRequest.username())){
         auto* err_resp = response_envelope.mutable_error_response();
         err_resp->set_error_message("Username already taken.");
         session->send(response_envelope);
         return;
     }
-    auto salt = Crypto::generateSalt();
-    auto hashedPassword = Crypto::hashPassword(registrationRequest.password(), salt);
+    const std::string& salt = Crypto::generateSalt();
+    const std::string& hashedPassword = Crypto::hashPassword(registrationRequest.password(), salt);
     User newUser;
     newUser.setUsername(registrationRequest.username());
     newUser.setHashedPassword(hashedPassword);
     newUser.setSalt(salt);
-    userRepository->addUser(newUser);   
-    auto* reg_resp = response_envelope.mutable_registration_response();
-    reg_resp->set_success(true);
-    reg_resp->set_message("Registration successful. You can now log in, " + newUser.getUsername() + "!");
-    session->send(response_envelope);
+    std::cout << "[DEBUG] AuthService: Before calling create. newUser address: "
+        << &newUser << ", username: '" << newUser.getUsername() << "'" << std::endl;
+    Crypto::print_string_details("generated", hashedPassword);
+    Crypto::print_string_details("get", newUser.getHashedPassword());
+    if (userRepository->addUser(newUser)) {
+        auto* reg_resp = response_envelope.mutable_registration_response();
+        reg_resp->set_success(true);
+        reg_resp->set_message("Registration successful. You can now log in, " + newUser.getUsername() + "!");
+        session->send(response_envelope);
+    }
+    else {
+        // --- 如果 create 返回 false，发送失败响应 ---
+        auto* response = response_envelope.mutable_registration_response();
+        response->set_success(false);
+        response->set_message("Registration failed due to a server-side error.");
+        session->send(response_envelope);
+    }
 }
 void AuthService::handleChangePassword(std::shared_ptr<Session> session, const chat::ChangePasswordRequest& changePasswordRequest){
     chat::Envelope  response_envelope;

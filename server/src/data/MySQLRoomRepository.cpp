@@ -9,23 +9,44 @@ std::optional<Room> MySQLRoomRepository::findByRoomId(long long id){
     soci::transaction tr(sql);
     try{
         Room room;
-        sql<<"SELECT id, name, creator_id, created_at FROM rooms WHERE id = :id", soci::use(id), soci::into(room);
-        tr.commit();
-        return room;
+        soci::statement st = (sql.prepare <<
+            "SELECT id, name, creator_id, created_at FROM rooms WHERE id = :id",
+            soci::use(id), soci::into(room));
+        st.execute(true);
+        if (st.fetch()) {
+            std::cout << "[DEBUG] RoomRepository: Room found. Name: '" << room.getName()
+                << "', ID: " << room.getId() << std::endl;
+            return room;
+        }
+        else {
+            std::cout << "[DEBUG] RoomRepository: Room with id '" << id << "' not found in database." << std::endl;
+            return std::nullopt;
+        }
     }catch(const std::exception& e){
         std::cerr << "Error finding room by ID: " << e.what() << std::endl;
         return std::nullopt;
     }
 }
 std::optional<Room> MySQLRoomRepository::findByRoomName(const std::string& name){
+    std::cout << "[DEBUG] RoomRepository: Searching for name: '" << name << "'" << std::endl;
     auto conWrapper = ConnectionWrapper(&ConnectionPool::getInstance(), ConnectionPool::getInstance().getConnection());
     soci::session& sql = *conWrapper;
     soci::transaction tr(sql);
     try{
         Room room;
-        sql<<"SELECT id, name, creator_id, created_at FROM rooms WHERE name = :name", soci::use(name), soci::into(room);
-        tr.commit();
-        return room;
+        soci::statement st = (sql.prepare <<
+            "SELECT id, name, creator_id, created_at FROM rooms WHERE name = :name",
+            soci::use(name), soci::into(room));
+        st.execute(true); 
+        if (st.fetch()) {
+            std::cout << "[DEBUG] RoomRepository: Room found. Name: '" << room.getName()
+                << "', ID: " << room.getId() << std::endl;
+            return room;
+        }
+        else {
+            std::cout << "[DEBUG] RoomRepository: Room with name '" << name << "' not found in database." << std::endl;
+            return std::nullopt;
+        }
     }catch(const std::exception& e){
         std::cerr << "Error finding room by name: " << e.what() << std::endl;
         return std::nullopt;
@@ -37,9 +58,19 @@ std::optional<Room> MySQLRoomRepository::findByCreatorId(long long creator_id){
     soci::transaction tr(sql);
     try{
         Room room;
-        sql<<"SELECT id, name, creator_id, created_at FROM rooms WHERE creator_id = :creator_id", soci::use(creator_id), soci::into(room);
-        tr.commit();
-        return room;
+        soci::statement st = (sql.prepare <<
+            "SELECT id, name, creator_id, created_at FROM rooms WHERE creator_id = :creator_id",
+            soci::use(creator_id), soci::into(room));
+        st.execute(true);
+        if (st.fetch()) {
+            std::cout << "[DEBUG] RoomRepository: Room found. Name: '" << room.getName()
+                << "', ID: " << room.getId() << std::endl;
+            return room;
+        }
+        else {
+            std::cout << "[DEBUG] RoomRepository: Room with creatorId '" << creator_id << "' not found in database." << std::endl;
+            return std::nullopt;
+        }
     }catch(const std::exception& e){
         std::cerr << "Error finding room by creator ID: " << e.what() << std::endl;
         return std::nullopt;
@@ -91,6 +122,7 @@ bool MySQLRoomRepository::updateRoom(Room& room){
         soci::statement st=(sql.prepare<<"UPDATE rooms SET name = :name WHERE id = :id",soci::use(room));
         st.execute(true);
         if (st.get_affected_rows() > 0) {
+            tr.commit();
             return true;
         } else {
             std::cout << "Update Warning: No room found with ID " << room.getId() 

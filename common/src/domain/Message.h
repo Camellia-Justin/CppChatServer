@@ -5,7 +5,7 @@
 class Message{
 public:
     Message() = default;
-    ~Message() = default;
+    virtual ~Message() = default;
     
     long long getId() const { return id; }
     void setId(long long newId) { id = newId; }
@@ -16,10 +16,10 @@ public:
     long long getRoomId() const { return room_id; }
     void setRoomId(long long newRoomId) { room_id = newRoomId; }
 
-    std::string getContent() const { return content; }
+    const std::string& getContent() const { return content; }
     void setContent(const std::string& newContent) { content = newContent; }
 
-    std::chrono::system_clock::time_point getCreatedAt() const { return created_at; }
+    const std::chrono::system_clock::time_point& getCreatedAt() const { return created_at; }
     void setCreatedAt(const std::chrono::system_clock::time_point& newCreatedAt) { created_at = newCreatedAt; }
 private:
     long long id;

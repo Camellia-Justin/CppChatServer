@@ -6,9 +6,11 @@
 #include <iomanip>
 #include <string>
 #include <vector>
+#include <iostream>
 class Crypto {
 public:
     Crypto() = delete;
-    static std::string generateSalt(size_t length = 16);
-    static std::string hashPassword(const std::string& password, const std::string& salt);
+    static  std::string generateSalt(size_t length = 16);
+    static  std::string hashPassword(const std::string& password, const std::string& salt);
+    static void print_string_details(const std::string& name, const std::string& s);
 };

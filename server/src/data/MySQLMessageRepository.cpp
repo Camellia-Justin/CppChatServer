@@ -53,10 +53,19 @@ std::optional<Message> MySQLMessageRepository::findByMessageId(long long id){
     soci::transaction tr(sql);
     try{
         Message msg;
-        sql<<"SELECT id, room_id, sender_id, content, created_at FROM messages WHERE id = :id", soci::use(id), soci::into(msg);
-        tr.commit();
-        return msg;
-
+        soci::statement st = (sql.prepare <<
+            sql << "SELECT id, room_id, sender_id, content, created_at FROM messages WHERE id = :id", 
+            soci::use(id), soci::into(msg));
+        st.execute(true);
+        if (st.fetch()) {
+            std::cout << "[DEBUG] MessageRepository: message found. SenderId: '" << msg.getSenderId()
+                << "', ID: " << msg.getId() << std::endl;
+            return msg;
+        }
+        else {
+            std::cout << "[DEBUG] MessageRepository: message with id '" << id << "' not found in database." << std::endl;
+            return std::nullopt;
+        }
     }catch(const std::exception& e){
         std::cerr << "Error finding message by ID: " << e.what() << std::endl;
         return std::nullopt;

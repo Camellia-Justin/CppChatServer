@@ -5,7 +5,7 @@ void MessageService::handlePublicMessage(std::shared_ptr<Session> session, const
         std::cerr << "Warning: Unauthenticated session tried to send a public message." << std::endl;
         return;
     }
-    const int senderId = session->getUserId();
+    const long long senderId = session->getUserId();
     const std::string roomName = roomService->getUserCurrentRoomName(senderId);
 
     if (roomName.empty()) {

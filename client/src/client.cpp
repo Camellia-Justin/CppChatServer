@@ -7,33 +7,65 @@
 #endif
 
 Client::Client(asio::io_context& io_context)
-    : io_context(io_context), socket(io_context) {}
+    : io_context(io_context), socket(io_context), work_guard(asio::make_work_guard(io_context)) {}
+
+//void Client::connect(const std::string& host, unsigned short port) {
+//    auto self = shared_from_this();
+//    asio::ip::tcp::resolver resolver(io_context);
+//    resolver.async_resolve(host, std::to_string(port),
+//        [this, self](const asio::error_code& ec, asio::ip::tcp::resolver::results_type endpoints) {
+//            if (!ec) {
+//                asio::async_connect(socket, endpoints,
+//                    [this, self](const asio::error_code& ec, const asio::ip::tcp::endpoint& endpoint) {
+//                        if (!ec) {
+//                            std::cout << "[System] Successfully connected to " 
+//                                      << endpoint << std::endl;
+//                            // 连接成功后，启动读循环
+//                            do_read_header();
+//                        } else {
+//                            handle_error("connect", ec);
+//                        }
+//                    });
+//            } else {
+//                handle_error("resolve", ec);
+//            }
+//        });
+//}
+// client/src/ChatClient.cpp
 
 void Client::connect(const std::string& host, unsigned short port) {
     auto self = shared_from_this();
-    asio::ip::tcp::resolver resolver(io_context);
-    resolver.async_resolve(host, std::to_string(port),
-        [this, self](const asio::error_code& ec, asio::ip::tcp::resolver::results_type endpoints) {
+    asio::error_code ec;
+
+    // 1. 将 host 字符串（比如 "127.0.0.1"）转换成 Asio 的地址对象
+    asio::ip::address address = asio::ip::make_address(host, ec);
+
+    if (ec) {
+        // 如果转换失败（比如 host 不是一个合法的 IP 地址字符串），立即报错
+        std::cerr << "[FATAL] Invalid IP address format: " << host << std::endl;
+        handle_error("make_address", ec);
+        return;
+    }
+
+    // 2. 使用地址和端口创建一个 endpoint
+    asio::ip::tcp::endpoint endpoint(address, port);
+
+    // 3. 直接在 socket 上调用 async_connect
+    socket.async_connect(endpoint,
+        [this, self](const asio::error_code& ec) {
             if (!ec) {
-                asio::async_connect(socket, endpoints,
-                    [this, self](const asio::error_code& ec, const asio::ip::tcp::endpoint& endpoint) {
-                        if (!ec) {
-                            std::cout << "[System] Successfully connected to " 
-                                      << endpoint << std::endl;
-                            // 连接成功后，启动读循环
-                            do_read_header();
-                        } else {
-                            handle_error("connect", ec);
-                        }
-                    });
-            } else {
-                handle_error("resolve", ec);
+                std::cout << "[System] Successfully initiated connection to "
+                    << socket.remote_endpoint() << std::endl;
+                do_read_header();
+            }
+            else {
+                handle_error("connect", ec);
             }
         });
 }
 
 void Client::close() {
-    asio::post(io_context, [this]() { socket.close(); });
+    asio::post(io_context, [this]() { socket.close(); work_guard.reset(); });
 }
 
 void Client::do_read_header(){
@@ -127,7 +159,12 @@ void Client::handle_server_message(const Envelope& envelope) {
         }
         case Envelope::kRegistrationResponse: {
             const auto& resp = envelope.registration_response();
-            std::cout << "[System] Registration response: " << resp.message() << std::endl;
+            if (resp.success()) {
+                std::cout << "[System] Registration successful! You can now log in." << std::endl;
+            }
+            else {
+                std::cout << "[System] Registration failed: " << resp.message() << std::endl;
+            }
             break;
         }
         case Envelope::kChangePasswordResponse: {
@@ -142,6 +179,9 @@ void Client::handle_server_message(const Envelope& envelope) {
         }
         case Envelope::kRoomOperationResponse: {
             const auto& resp = envelope.room_operation_response();
+            if (resp.success() && (resp.operation() == chat::RoomOperation::JOIN || resp.operation() == chat::RoomOperation::CREATE)) {
+                setCurrentRoom(resp.room_name());
+            }
             std::cout << "[System] Room operation response: " << resp.message() << std::endl;
             break;
         }

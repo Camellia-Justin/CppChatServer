@@ -21,7 +21,7 @@ int main() {
         asio::io_context io_context;
         unsigned short port = config.at("server").at("port").get<unsigned short>();
         Server server(io_context, port);
-        unsigned int thread_count = std::thread::hardware_concurrency();
+        unsigned int thread_count = config.at("server").value("threads", 0);
         server.run();
         std::vector<std::thread> threads;
         for (int i = 0; i < thread_count; ++i) {

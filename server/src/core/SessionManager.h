@@ -25,6 +25,6 @@ public:
 private:
     std::mutex mtx;
     std::unordered_set<std::shared_ptr<Session>> sessions;
-    std::unordered_map<int, std::shared_ptr<Session>> sessionsByUserId;
+    std::unordered_map<long long, std::shared_ptr<Session>> sessionsByUserId;
     std::unordered_map<std::string, std::shared_ptr<Session>> sessionsByUsername;
 };

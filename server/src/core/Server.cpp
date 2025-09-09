@@ -70,7 +70,7 @@ void Server::dispatchMessage(std::shared_ptr<Session> session, const chat::Envel
             authService->handleRegister(session,envelope.registration_request());
             return;
         default:
-            return;
+            break;
     }
     if (!session->isAuthenticated()) {
         std::cerr << "Warning: Unauthenticated session tried to send an authenticated-only request. Payload type: "
