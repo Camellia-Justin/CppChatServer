@@ -1,4 +1,3 @@
-// tester/src/main.cpp
 #include "client.h" 
 #include <iostream>
 #include <vector>
@@ -23,39 +22,48 @@ public:
         std::string username = "testuser_" + std::to_string(reinterpret_cast<uintptr_t>(this));
 
         Envelope register_envelope;
-        auto* req = register_envelope.mutable_register_request();
+        auto* req = register_envelope.mutable_registration_request();
         req->set_username(username);
         req->set_password("123456");
 
         send(register_envelope);
     }
+    void onConnect_login() {
+        ++connected_clients;
+        std::string username = "testuser_" + std::to_string(reinterpret_cast<uintptr_t>(this));
+
+        Envelope login_envelope;
+        auto* req = login_envelope.mutable_login_request();
+        req->set_username(username);
+        req->set_password("123456");
+
+        send(login_envelope);
+    }
 
 protected:
     void handle_server_message(const Envelope& envelope) override {
-        
         Client::handle_server_message(envelope);
-
-
         ++messages_received;
-
-         if (envelope.payload_case() == chat::Envelope::kRegistrationResponse) {
-            const auto& resp = envelope.registration_response();
-            if (resp.success()) {
-                Envelope login_envelope;
-                auto* req = login_envelope.mutable_login_request();
-                req->set_username(resp.username());
-                req->set_password("123456");
-                send(login_envelope);
+        switch(envelope.payload_case()) {
+            case chat::Envelope::kRegistrationResponse: {
+                const auto& reg_resp = envelope.registration_response();
+                if (reg_resp.success()) {
+                    std::cout << "register success" << std::endl;
+                    onConnect_login();
+                }
+                break;
             }
-        } else if (envelope.payload_case() == chat::Envelope::kLoginResponse) {
-            const auto& resp = envelope.login_response();
-            if (resp.success()) {
-                successful_logins++;
-                start_sending();
+            case chat::Envelope::kLoginResponse: {
+                const auto& login_resp = envelope.login_response();
+                if (login_resp.success()) {
+                    successful_logins++;
+                }
+                break;
             }
+            default:
+                break;
         }
     }
-
 private:
 
     void start_sending() {
