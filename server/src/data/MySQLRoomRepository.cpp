@@ -9,11 +9,21 @@ std::optional<Room> MySQLRoomRepository::findByRoomId(long long id){
     soci::transaction tr(sql);
     try{
         Room room;
+		long long roomid, creator_id;
+		std::string roomname;
+        std::chrono::system_clock::time_point created_at;
         soci::statement st = (sql.prepare <<
             "SELECT id, name, creator_id, created_at FROM rooms WHERE id = :id",
-            soci::use(id), soci::into(room));
+            soci::use(id), soci::into(roomid),
+            soci::into(creator_id),
+            soci::into(roomname),
+            soci::into(created_at));
         st.execute(true);
         if (st.fetch()) {
+			room.setId(roomid);
+			room.setCreatorId(creator_id);
+			room.setName(roomname);
+			room.setCreatedAt(created_at);
             std::cout << "[DEBUG] RoomRepository: Room found. Name: '" << room.getName()
                 << "', ID: " << room.getId() << std::endl;
             return room;
@@ -33,20 +43,32 @@ std::optional<Room> MySQLRoomRepository::findByRoomName(const std::string& name)
     soci::session& sql = *conWrapper;
     soci::transaction tr(sql);
     try{
-        Room room;
+        long long roomid, creator_id;
+        std::string roomname;
+        std::tm created_at_tm = {};
+        soci::indicator id_ind, roomname_ind, creator_id_ind, created_at_ind;
         soci::statement st = (sql.prepare <<
             "SELECT id, name, creator_id, created_at FROM rooms WHERE name = :name",
-            soci::use(name), soci::into(room));
-        st.execute(true); 
-        if (st.fetch()) {
+            soci::use(name), soci::into(roomid,id_ind), soci::into(roomname,roomname_ind), soci::into(creator_id,creator_id_ind), soci::into(created_at_tm,created_at_ind));
+        st.execute(true);
+        if (sql.got_data() && id_ind == soci::i_ok) {
+            Room room;
+			room.setId(roomid);
+			room.setCreatorId(creator_id);
+			room.setName(roomname);
+            if (created_at_ind == soci::i_ok) {
+                room.setCreatedAt(std::chrono::system_clock::from_time_t(std::mktime(&created_at_tm)));
+            }
+            else {
+                room.setCreatedAt(std::chrono::system_clock::now());
+            }
             std::cout << "[DEBUG] RoomRepository: Room found. Name: '" << room.getName()
                 << "', ID: " << room.getId() << std::endl;
             return room;
         }
-        else {
-            std::cout << "[DEBUG] RoomRepository: Room with name '" << name << "' not found in database." << std::endl;
-            return std::nullopt;
-        }
+        std::cout << "[DEBUG] RoomRepository: Room not found." << std::endl;
+        return std::nullopt;
+
     }catch(const std::exception& e){
         std::cerr << "Error finding room by name: " << e.what() << std::endl;
         return std::nullopt;

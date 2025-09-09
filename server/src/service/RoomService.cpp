@@ -10,6 +10,13 @@
         switch (request.operation()){
         case chat::RoomOperation::JOIN://join
             {
+                auto roomOpt = roomRepository->findByRoomName(roomname);
+                if (!roomOpt) {
+                    response.mutable_room_operation_response()->set_success(false);
+                    response.mutable_room_operation_response()->set_message("Room '" + roomname + "' does not exist.");
+                    session->send(response);
+                    return;
+                }
                 {
                     std::lock_guard lock(mutex);
                     auto userIt = userToRoomMap.find(userId);
@@ -19,13 +26,23 @@
                         if (roomIt != activeRooms.end()) {
                             roomIt->second.members.erase(userId);
                             if (roomIt->second.members.empty()) {
-                                activeRooms.erase(roomIt);
+                                activeRooms.erase(oldRoomName);
                             }
                         }
-                        userToRoomMap.erase(userIt);
+                        userToRoomMap.erase(userId);
                     }
                     userToRoomMap[userId]=roomname;
-                    activeRooms[roomname].members[userId]=session;
+                    if (activeRooms.find(roomname) != activeRooms.end()) {
+                        activeRooms[roomname].members[userId] = session;
+                    }
+                    else {
+                        Room room = *roomOpt;
+                        activeRooms[roomname].id = room.getId();
+                        activeRooms[roomname].creator_id = room.getCreatorId();
+                        activeRooms[roomname].name = room.getName();
+						activeRooms[roomname].members[userId] = session;
+                    }
+                    
                 }
                 response.mutable_room_operation_response()->set_success(true);
                 response.mutable_room_operation_response()->set_message("Joined room "+roomname+" successfully.");

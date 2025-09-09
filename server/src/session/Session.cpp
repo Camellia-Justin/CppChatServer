@@ -1,6 +1,6 @@
 #include "Session.h"
 #include "core/Server.h"
-Session::Session(std::shared_ptr<asio::ip::tcp::socket> sock, Server &srv) : socket_ptr(sock), server(srv) {}
+Session::Session(std::shared_ptr<asio::ip::tcp::socket> sock, Server& srv) : socket_ptr(sock), server(srv), strand(asio::make_strand(socket_ptr->get_executor())) {}
 void Session::start()
 {
     do_read_header();
@@ -9,6 +9,7 @@ void Session::do_read_header()
 {
     auto self = shared_from_this();
     asio::async_read(*socket_ptr, asio::buffer(header_buf, header_length),
+        asio::bind_executor(strand,
                      [this, self](const asio::error_code &ec, size_t bytes_transferred)
                      {
                          if (!ec)
@@ -27,13 +28,14 @@ void Session::do_read_header()
                              std::cerr << "Read header error: " << ec.message() << std::endl;
                              handle_error("Read header", ec);
                          }
-                     });
+                     }));
 }
 void Session::do_read_body(const uint32_t body_length)
 {
     body_buf.resize(body_length);
     auto self = shared_from_this();
     asio::async_read(*socket_ptr, asio::buffer(body_buf.data(), body_length),
+		asio::bind_executor(strand,
                      [this, self](const asio::error_code &ec, size_t bytes_transferred)
                      {
                          if (!ec)
@@ -55,7 +57,7 @@ void Session::do_read_body(const uint32_t body_length)
                              std::cerr << "Read body error: " << ec.message() << std::endl;
                              handle_error("Read body", ec);
                          }
-                     });
+                     }));
 }
 void Session::send(const chat::Envelope &envelope)
 {
@@ -67,24 +69,25 @@ void Session::send(const chat::Envelope &envelope)
     write_buf.append(reinterpret_cast<const char *>(&body_length), sizeof(body_length));
     write_buf.append(body_data);
     auto self = shared_from_this();
-    asio::post(socket_ptr->get_executor(),
-               [this, self, buffer = std::move(write_buf)]() mutable
-               {
-                   bool write_in_progress = !message_queue.empty();
-                   message_queue.push(std::move(buffer));
-                   if (!write_in_progress)
-                       do_write();
-               });
+    // 关键：post 到 strand 上，而不是 socket 的 executor 上
+    asio::post(strand,
+        [this, self, package = std::move(write_buf)]() mutable {
+            bool write_in_progress = !message_queue.empty();
+            message_queue.push(std::move(package));
+            if (!write_in_progress) {
+                do_write();
+            }
+        });
 }
 void Session::do_write()
 {
     const std::string &write_buf = message_queue.front();
     auto self = shared_from_this();
     asio::async_write(*socket_ptr, asio::buffer(write_buf),
-                      [this, self](const asio::error_code &ec, size_t bytes_transferred)
-                      {
-                          handle_write(ec, bytes_transferred);
-                      });
+        asio::bind_executor(strand,
+            [this, self](const asio::error_code& ec, size_t bytes) {
+                handle_write(ec, bytes);
+            }));
 }
 void Session::handle_write(const asio::error_code &ec, size_t bytes_transferred)
 {

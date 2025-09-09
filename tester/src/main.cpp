@@ -39,6 +39,10 @@ public:
 
         send(login_envelope);
     }
+    void start_sending() {
+
+        schedule_send();
+    }
 
 protected:
     void handle_server_message(const Envelope& envelope) override {
@@ -56,6 +60,7 @@ protected:
             case chat::Envelope::kLoginResponse: {
                 const auto& login_resp = envelope.login_response();
                 if (login_resp.success()) {
+                    std::cout << "logged in success" << std::endl;
                     successful_logins++;
                 }
                 break;
@@ -66,10 +71,6 @@ protected:
     }
 private:
 
-    void start_sending() {
-
-        schedule_send();
-    }
     void schedule_send() {
         std::uniform_int_distribution<int> dist(1000, 5000);
         int random_delay_ms = dist(m_rng);
@@ -97,7 +98,7 @@ private:
 
 
 int main(int argc, char* argv[]) {
-    if (argc != 3) {
+    if (argc < 4) {
         std::cerr << "Usage: chat_client <host> <port>\n";
         return 1;
     }
@@ -129,12 +130,18 @@ int main(int argc, char* argv[]) {
         client->connect(host, port, [client](const asio::error_code& ec) {
             if (!ec) {
                 client->onConnect_register();
-
             }
             });
 
         std::this_thread::sleep_for(std::chrono::milliseconds(10));
     }
+    for(const auto& client : clients) {
+        chat::Envelope join_envelope;
+        join_envelope.mutable_room_operation_request()->set_operation(chat::RoomOperation::JOIN);
+        join_envelope.mutable_room_operation_request()->set_room_name("room1");
+        client->send(join_envelope);
+        client->start_sending();
+	}
     std::cout << "All clients initiated. Running test for 60 seconds...\n";
     for (int i = 0; i < 60; ++i) {
         std::cout << "Connected: " << connected_clients
@@ -142,6 +149,12 @@ int main(int argc, char* argv[]) {
             << ", Messages Sent: " << messages_sent << std::endl;
         std::this_thread::sleep_for(std::chrono::seconds(1));
     }
+
+    std::cout << "--- Test Summary ---\n"
+        << "Total Connections: " << connected_clients << "\n"
+        << "Total Logins: " << successful_logins << "\n"
+        << "Total Messages: " << messages_sent << "\n"
+        << "---------------------\n";
 
     std::cout << "Test finished. Closing all connections...\n";
     for (const auto& client : clients) {
@@ -153,11 +166,7 @@ int main(int argc, char* argv[]) {
         t.join();
     }
 
-    std::cout << "--- Test Summary ---\n"
-        << "Total Connections: " << connected_clients << "\n"
-        << "Total Logins: " << successful_logins << "\n"
-        << "Total Messages: " << messages_sent << "\n"
-        << "---------------------\n";
+    
 
     return 0;
 }

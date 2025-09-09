@@ -31,6 +31,7 @@ private:
     Server& server;
     bool is_closed = false;
     std::shared_ptr<asio::ip::tcp::socket> socket_ptr;
+    asio::strand<asio::any_io_executor> strand;
     std::queue<std::string> message_queue;
     static constexpr size_t header_length = 4;
     std::array<char,header_length> header_buf;
