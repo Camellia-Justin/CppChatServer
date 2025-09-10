@@ -10,7 +10,7 @@
 
 
 #include <soci/soci.h>
-#include <soci/mysql/soci-mysql.h> // 如果其他地方也需要
+#include <soci/mysql/soci-mysql.h>
 
 
 #include "data/ConnectionPool.h"
