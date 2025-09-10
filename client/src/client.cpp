@@ -36,21 +36,14 @@ Client::Client(asio::io_context& io_context)
 void Client::connect(const std::string& host, unsigned short port, std::function<void(const asio::error_code&)> handler) {
     auto self = shared_from_this();
     asio::error_code ec;
-
-    // 1. 将 host 字符串（比如 "127.0.0.1"）转换成 Asio 的地址对象
     asio::ip::address address = asio::ip::make_address(host, ec);
 
     if (ec) {
-        // 如果转换失败（比如 host 不是一个合法的 IP 地址字符串），立即报错
         std::cerr << "[FATAL] Invalid IP address format: " << host << std::endl;
         handle_error("make_address", ec);
         return;
     }
-
-    // 2. 使用地址和端口创建一个 endpoint
     asio::ip::tcp::endpoint endpoint(address, port);
-
-    // 3. 直接在 socket 上调用 async_connect
     socket.async_connect(endpoint,
         [this, self,handler](const asio::error_code& ec) {
 			handler(ec); 
@@ -156,13 +149,8 @@ void Client::handle_server_message(const Envelope& envelope) {
         case Envelope::kMessageBroadcast: {
             const auto& msg = envelope.message_broadcast();
             std::string time_str = google::protobuf::util::TimeUtil::ToString(msg.timestamp());
-            if (msg.room_name().empty()) { // 私聊
-                std::cout << "[Private from " << msg.from_username() << " at " << time_str << "]: " 
-                          << msg.content() << std::endl;
-            } else { // 房间/公聊
                 std::cout << "[" << msg.room_name() << " | " << msg.from_username() << " at " << time_str << "]: " 
                           << msg.content() << std::endl;
-            }
             break;
         }
         case Envelope::kLoginResponse: {
