@@ -19,10 +19,11 @@ int main() {
         ConnectionPool::getInstance().init(conn_str, 10);
        
         asio::io_context io_context;
+        auto work_guard = asio::make_work_guard(io_context.get_executor());
         unsigned short port = config.at("server").at("port").get<unsigned short>();
         Server server(io_context, port);
-        unsigned int thread_count = config.at("server").value("threads", 0);
         server.run();
+        unsigned int thread_count = config.at("server").value("threads", 0);
         std::vector<std::thread> threads;
         for (int i = 0; i < thread_count; ++i) {
             threads.emplace_back([&io_context]() {
@@ -33,6 +34,13 @@ int main() {
                 }
             });
         }
+
+        asio::signal_set signals(io_context, SIGINT, SIGTERM);
+        signals.async_wait([&](const asio::error_code&, int) {
+            std::cout << "\n[INFO] Shutdown signal received. Stopping server..." << std::endl;
+            work_guard.reset();
+        });
+
         io_context.run();
         for (auto& t : threads) {
             if (t.joinable()) {
@@ -49,5 +57,6 @@ int main() {
         std::cerr << "Unexpected Error: " << e.what() << std::endl;
         return 1;
     }
+    std::cout << "[INFO] Server has shut down gracefully." << std::endl;
     return 0;
 }

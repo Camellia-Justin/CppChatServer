@@ -12,7 +12,7 @@ namespace chat{
 
 class SessionManager {
 public:
-    SessionManager() = default;
+    explicit SessionManager(std::recursive_mutex& mtx);
     ~SessionManager() = default;
     void add(std::shared_ptr<Session> s);
     void remove(std::shared_ptr<Session> s);
@@ -23,7 +23,7 @@ public:
     void broadcast(const chat::Envelope& envelope);
 
 private:
-    std::mutex mtx;
+    std::recursive_mutex& mtx;
     std::unordered_set<std::shared_ptr<Session>> sessions;
     std::unordered_map<long long, std::shared_ptr<Session>> sessionsByUserId;
     std::unordered_map<std::string, std::shared_ptr<Session>> sessionsByUsername;

@@ -12,18 +12,23 @@
 
 Server::Server(asio::io_context& io_context,unsigned short port)
 :ioc(io_context),
- acceptor(io_context, asio::ip::tcp::endpoint(asio::ip::tcp::v4(), port)){
+ acceptor(io_context, asio::ip::tcp::endpoint(asio::ip::tcp::v4(), port)),
+ logStrand(asio::make_strand(io_context.get_executor())) {
 
     userRepository = std::make_unique<MySQLUserRepository>();
     roomRepository = std::make_unique<MySQLRoomRepository>();
     messageRepository = std::make_unique<MySQLMessageRepository>();
 
-    sessionManager = std::make_unique<SessionManager>();
+    sessionManager = std::make_unique<SessionManager>(getMutex());
     authService = std::make_unique<AuthService>(userRepository.get(), sessionManager.get());
-    roomService = std::make_unique<RoomService>(roomRepository.get(), userRepository.get(), messageRepository.get(), sessionManager.get());
+    roomService = std::make_unique<RoomService>(getMutex(), roomRepository.get(), userRepository.get(), messageRepository.get(), sessionManager.get());
     messageService = std::make_unique<MessageService>(messageRepository.get(), sessionManager.get(), roomService.get());
 }
 Server::~Server() = default;
+
+std::recursive_mutex& Server::getMutex() {
+    return mtx;
+}
 void Server::run(){
     start_accept();
 }
@@ -60,6 +65,11 @@ void Server::onMessage(std::shared_ptr<Session> session, const chat::Envelope& e
     asio::post(ioc, [this, session, envelope]() {
         dispatchMessage(session, envelope);
     });
+}
+void Server::postLog(const std::string& message) {
+    asio::post(logStrand, [message]() {
+        std::cout << message << std::endl;
+        });
 }
 void Server::dispatchMessage(std::shared_ptr<Session> session, const chat::Envelope& envelope){
     switch(envelope.payload_case()){
@@ -110,11 +120,12 @@ void Server::dispatchMessage(std::shared_ptr<Session> session, const chat::Envel
 void Server::onDisconnect(std::shared_ptr<Session> session){
     asio::post(ioc, [this, session]() {
         if (session->isAuthenticated()) {
-            std::cout << "User '" << session->getUsername() 
-                      << "' (ID: " << session->getUserId() << ") disconnected." << std::endl;
+            std::string logMsg = "[INFO] User '" + session->getUsername() +
+                "' (ID: " + std::to_string(session->getUserId()) + ") disconnected.";
+            postLog(logMsg);
             roomService->handleDisconnect(session);
         } else {
-            std::cout << "An anonymous connection closed." << std::endl;
+            postLog("[INFO] An anonymous connection closed.");
         }
         sessionManager->remove(session);
     });

@@ -62,7 +62,7 @@ void MessageService::handlePrivateMessage(std::shared_ptr<Session> session, cons
                   << ") tried to send a private message to non-existent or unauthenticated user: " 
                   << privateMessage.to_username() << std::endl;
         auto* error_response = response.mutable_error_response();
-        error_response->set_error_message("The user you are trying to message does not exist or is not online.");
+        error_response->set_error_message("The user " + privateMessage.to_username() + " you are trying to message does not exist or is not online.");
         error_response->set_error_code(404);
         session->send(response);
         return;
@@ -77,11 +77,6 @@ void MessageService::handlePrivateMessage(std::shared_ptr<Session> session, cons
         session->send(response);
         return;
     }
-    Message message;
-    message.setSenderId(senderId);
-    message.setRoomId(roomService->getUserCurrentRoomId(senderId));
-    message.setContent(privateMessage.content());
-    messageRepository->addMessage(message);
     auto* messageBroadcast = response.mutable_message_broadcast();
     messageBroadcast->set_from_user_id(std::to_string(senderId));
     messageBroadcast->set_from_username(senderName);

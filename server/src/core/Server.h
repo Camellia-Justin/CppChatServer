@@ -24,9 +24,13 @@ public:
        void run();
        void onMessage(std::shared_ptr<Session> session, const chat::Envelope& envelope);
        void onDisconnect(std::shared_ptr<Session> session);
+       void postLog(const std::string& message);
+       std::recursive_mutex& getMutex();
 private:
+       std::recursive_mutex mtx;
        asio::ip::tcp::acceptor acceptor;
        asio::io_context& ioc;
+       asio::strand<asio::io_context::executor_type> logStrand;
 
        std::unique_ptr<IUserRepository> userRepository;
        std::unique_ptr<IRoomRepository> roomRepository;

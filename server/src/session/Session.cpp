@@ -25,6 +25,17 @@ void Session::do_read_header()
                          }
                          else
                          {
+                             std::cerr << ">>> Actual error code: " << ec.value() << " (" << ec.message() << ")" << std::endl;
+                             if (ec == asio::error::eof || ec == asio::error::connection_reset)
+                             {
+                                 handle_error("Client disconnected gracefully during header read.", ec);
+                                 return;
+                             }
+                             if(ec == asio::error::operation_aborted )
+                             {
+                                 handle_error("Server closed", ec);
+                                 return;
+							 }
                              std::cerr << "Read header error: " << ec.message() << std::endl;
                              handle_error("Read header", ec);
                          }
@@ -116,6 +127,13 @@ void Session::handle_error(const std::string &what, const asio::error_code &ec)
     else if (ec == asio::error::operation_aborted)
     {
         return;
+    }
+    else if (ec == asio::error::connection_reset) {
+        std::cout << "[INFO] Connection reset by peer (" << what << ")." << std::endl;
+    }
+    else if (ec == asio::error::timed_out)
+    {
+        std::cout << "[INFO] Session timed out (" << what << ")." << std::endl;
     }
     else if (ec)
     {

@@ -81,7 +81,19 @@ void Client::do_read_header(){
                         handle_error("Invalid length", asio::error_code());
                     }
             }else{
-                std::cerr<<"Read header error: "<<ec.message()<<std::endl;
+                std::cerr << ">>> Actual error code: " << ec.value() << " (" << ec.message() << ")" << std::endl;
+                if (ec == asio::error::eof ||
+                    ec == asio::error::connection_reset ||
+                    ec == asio::error::operation_aborted ||
+                    ec.value() == 1236 ||
+                    ec.value() == 10053 ||
+					ec.value() == 10054 ||
+					ec.value() == 104 ||
+                    ec.value() == 103)   {
+                    handle_error("Connection closed by peer", ec);
+                    return;
+                }
+                std::cerr << "Read header error: " << ec.message() << std::endl;
                 handle_error("Read header",ec);
             }
         });
@@ -180,9 +192,19 @@ void Client::handle_server_message(const Envelope& envelope) {
         }
         case Envelope::kRoomOperationResponse: {
             const auto& resp = envelope.room_operation_response();
-            if (resp.success() && (resp.operation() == chat::RoomOperation::JOIN || resp.operation() == chat::RoomOperation::CREATE)) {
+            if (resp.success() && (resp.operation() == chat::RoomOperation::JOIN)) {
+                setCurrentRoom(resp.room_name());
+				chat::Envelope historyReq;
+				historyReq.mutable_history_message_request()->set_room_name(resp.room_name());
+				historyReq.mutable_history_message_request()->set_limit(20);
+                send(historyReq);
+            }
+            else if (resp.operation() == chat::RoomOperation::CREATE) {
                 setCurrentRoom(resp.room_name());
             }
+            else if (resp.success() && (resp.operation() == chat::RoomOperation::LEAVE)) {
+                setCurrentRoom("");
+			}
             std::cout << "[System] Room operation response: " << resp.message() << std::endl;
             break;
         }
@@ -191,13 +213,8 @@ void Client::handle_server_message(const Envelope& envelope) {
             std::cout << "[System] History messages:" << std::endl;
             for (const auto& msg : resp.messages()) {
                 std::string time_str = google::protobuf::util::TimeUtil::ToString(msg.timestamp());
-                if (msg.room_name().empty()) { // 私聊
-                    std::cout << "  [Private from " << msg.from_username() << " at " << time_str << "]: " 
-                              << msg.content() << std::endl;
-                } else { // 房间/公聊
-                    std::cout << "  [" << msg.room_name() << " | " << msg.from_username() << " at " << time_str << "]: " 
-                              << msg.content() << std::endl;
-                }
+                std::cout << "  [" << msg.room_name() << " | " << msg.from_username() << " at " << time_str << "]: " 
+                          << msg.content() << std::endl;
             }
             break;
         }
@@ -221,5 +238,20 @@ void Client::handle_error(const std::string& where, const std::error_code& ec) {
         std::cout << "[System] Connection closed by server (" << where << ")." << std::endl;
     } else if (ec) {
         std::cerr << "[Error] in " << where << ": " << ec.message() << std::endl;
+    }
+    else if (ec == asio::error::operation_aborted)
+    {
+        return;
+    }
+    else if (ec == asio::error::connection_reset) {
+        std::cout << "[INFO] Connection reset by peer (" << where << ")." << std::endl;
+    }
+    else if (ec == asio::error::timed_out)
+    {
+        std::cout << "[INFO] Session timed out (" << where << ")." << std::endl;
+    }
+    else if (ec)
+    {
+        std::cerr << "[ERROR] Session error in " << where << ": " << ec.message() << std::endl;
     }
 }

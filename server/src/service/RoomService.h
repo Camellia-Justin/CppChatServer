@@ -20,7 +20,7 @@ private:
         std::unordered_map<long long, std::shared_ptr<Session>> members;
     };
 public:
-    RoomService(IRoomRepository* roomRepository,IUserRepository* userRepository, IMessageRepository* messageRepository, SessionManager* sessionManager) : roomRepository(roomRepository), userRepository(userRepository), messageRepository(messageRepository), sessionManager(sessionManager) {}
+    RoomService(std::recursive_mutex& mutex,IRoomRepository* roomRepository,IUserRepository* userRepository, IMessageRepository* messageRepository, SessionManager* sessionManager) : mutex(mutex),roomRepository(roomRepository), userRepository(userRepository), messageRepository(messageRepository), sessionManager(sessionManager) {}
     void handleRoomOperation(std::shared_ptr<Session> session, const chat::RoomOperationRequest& request);
     void handleHistoryRequest(std::shared_ptr<Session> session, const chat::HistoryMessageRequest& request);
     void handleDisconnect(std::shared_ptr<Session> session);
@@ -32,7 +32,7 @@ private:
     IMessageRepository* messageRepository;
     IUserRepository* userRepository;
     SessionManager* sessionManager;
-    mutable std::mutex mutex;
+    std::recursive_mutex& mutex;
     std::unordered_map<std::string, ActiveRoom> activeRooms;//roomname,ActiveRoom
     std::unordered_map<long long, std::string> userToRoomMap;//userid,roomname
 };

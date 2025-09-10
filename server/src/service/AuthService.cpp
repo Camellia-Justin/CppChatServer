@@ -13,13 +13,12 @@ void AuthService::handleLogin(std::shared_ptr<Session> session, const chat::Logi
     const std::string& stored_salt = user.getSalt();
     const std::string& stored_hash = user.getHashedPassword();
     const std::string& new_hash_attempt = Crypto::hashPassword(loginRequest.password(), stored_salt);
-    std::cout << "\n\n======= HASH COMPARISON DIAGNOSTICS =======" << std::endl;
-    Crypto::print_string_details("Stored Hash (from DB)", stored_hash);
-    Crypto::print_string_details("New Hash (just generated)", new_hash_attempt);
-    std::cout << "===========================================\n\n" << std::endl;
-    // ========================================================
+    //std::cout << "\n\n======= HASH COMPARISON DIAGNOSTICS =======" << std::endl;
+    //Crypto::print_string_details("Stored Hash (from DB)", stored_hash);
+    //Crypto::print_string_details("New Hash (just generated)", new_hash_attempt);
+    //std::cout << "===========================================\n\n" << std::endl;
+    //// ========================================================
 
-    // 现在进行比较
     if (new_hash_attempt == stored_hash) {
         std::cout << "Password verification SUCCESSFUL." << std::endl;
         sessionManager->registerAuthenticatedSession(session, user.getId(), user.getUsername());
@@ -38,8 +37,6 @@ void AuthService::handleLogin(std::shared_ptr<Session> session, const chat::Logi
     
 }
 void AuthService::handleRegister(std::shared_ptr<Session> session, const chat::RegistrationRequest& registrationRequest){
-    std::cout << "[DEBUG] AuthService: Handling registration for username: '"
-        << registrationRequest.username() << "'" << std::endl;
 	chat::Envelope response_envelope;
     if(userRepository->findByUsername(registrationRequest.username())){
         auto* err_resp = response_envelope.mutable_error_response();
@@ -53,10 +50,10 @@ void AuthService::handleRegister(std::shared_ptr<Session> session, const chat::R
     newUser.setUsername(registrationRequest.username());
     newUser.setHashedPassword(hashedPassword);
     newUser.setSalt(salt);
-    std::cout << "[DEBUG] AuthService: Before calling create. newUser address: "
+    /*std::cout << "[DEBUG] AuthService: Before calling create. newUser address: "
         << &newUser << ", username: '" << newUser.getUsername() << "'" << std::endl;
     Crypto::print_string_details("generated", hashedPassword);
-    Crypto::print_string_details("get", newUser.getHashedPassword());
+    Crypto::print_string_details("get", newUser.getHashedPassword());*/
     if (userRepository->addUser(newUser)) {
         auto* reg_resp = response_envelope.mutable_registration_response();
         reg_resp->set_success(true);

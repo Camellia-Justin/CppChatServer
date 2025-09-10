@@ -143,7 +143,7 @@ int main(int argc, char* argv[]) {
         client->start_sending();
 	}
     std::cout << "All clients initiated. Running test for 60 seconds...\n";
-    for (int i = 0; i < 60; ++i) {
+   while(1){
         std::cout << "Connected: " << connected_clients
             << ", Logged in: " << successful_logins
             << ", Messages Sent: " << messages_sent << std::endl;

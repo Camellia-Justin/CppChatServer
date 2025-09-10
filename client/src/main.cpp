@@ -1,4 +1,3 @@
-// client/src/main.cpp
 #include "client.h"
 #include <iostream>
 #include <string>
@@ -10,7 +9,6 @@ std::shared_ptr<Client> client;
 
 void signal_handler(int signum) {
     std::cout << "\n[System] Interrupt signal (" << signum << ") received. Shutting down...\n";
-    // 通过 post 将关闭操作调度到 io_context 线程，保证线程安全
     if (client && io_context) {
         asio::post(*io_context, []() {
             if (client) {
@@ -35,12 +33,15 @@ void handle_user_input() {
     print_help();
     std::string line;
     while (std::getline(std::cin, line)) {
-        if (!client) break; // 如果客户端已关闭，退出循环
+        if (!client) break; 
         if (line.empty()) continue;
         if (line == "/quit") {
-            // 用户请求退出
-            client->close();
-            break; // 退出输入循环
+            asio::post(*io_context, []() {
+                if (client) {
+                    client->close();
+                }
+            });
+            break;
         }
         Envelope envelope;
         bool should_send = true;
@@ -108,7 +109,6 @@ void handle_user_input() {
     std::cout << "[System] Input thread finished." << std::endl;
 }
 
-
 int main(int argc, char* argv[]) {
     if (argc != 3) {
         std::cerr << "Usage: chat_client <host> <port>\n";
@@ -117,11 +117,8 @@ int main(int argc, char* argv[]) {
     signal(SIGINT, signal_handler);
     signal(SIGTERM, signal_handler);
     try {
-        // --- 初始化全局对象 ---
         io_context = std::make_unique<asio::io_context>();
         client = std::make_shared<Client>(*io_context);
-
-        // --- 异步连接 ---
         client->connect(argv[1], std::stoi(argv[2]),
             [](const asio::error_code& ec) {
                 if (!ec) {
@@ -129,23 +126,16 @@ int main(int argc, char* argv[]) {
                 }
                 else {
                     std::cerr << "[System] Connection failed: " << ec.message() << "\n";
-                    // 连接失败，停止 io_context 以便程序退出
+            
                     if (client) client->close();
                 }
             });
-        // --- 启动输入线程 ---
+
         std::thread input_thread(handle_user_input);
-        // --- 主线程驱动 I/O ---
-        // run() 会一直阻塞，直到 work_guard 被 reset
+
         io_context->run();
-        // --- 清理 ---
-        // 当 run() 返回后，意味着关闭流程已启动
-        // 我们需要确保输入线程也退出
-        // 在 Windows 上，可能需要模拟一次回车来唤醒 getline
-        // (这是一个复杂的控制台 I/O 问题，暂时可以忽略)
+
         if (input_thread.joinable()) {
-            // Detach 是一个简单的处理方式，让它自生自灭
-            // 更好的方式是使用异步 I/O 来处理 stdin
             input_thread.detach();
         }
     }
