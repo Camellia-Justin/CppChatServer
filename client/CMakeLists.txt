@@ -1,6 +1,4 @@
-# client/CMakeLists.txt (最终修正版)
 
-# 只查找 client 自身直接需要的依赖
 find_package(asio CONFIG REQUIRED)
 find_package(Threads REQUIRED)
 
@@ -16,7 +14,7 @@ target_include_directories(client_lib PUBLIC
 )
 
 target_link_libraries(client_lib PUBLIC
-    common      # common 会自动带来 protobuf 的链接
+    common      
     asio::asio
     Threads::Threads
 )

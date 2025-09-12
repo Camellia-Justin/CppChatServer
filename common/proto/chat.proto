@@ -89,7 +89,7 @@ message MessageBroadcast {
   string                    from_username  = 2;
   string                    content        = 3;
   google.protobuf.Timestamp timestamp      = 4;
-  optional string           room_name      = 5; // 如果在房间内，则填写房间名
+  optional string           room_name      = 5;
 }
 
 
@@ -131,7 +131,6 @@ message HistoryMessageRequest {
 // 服务器返回历史消息
 message HistoryMessageResponse {
   string room_name = 1;
-  // repeated 关键字表示这是一个消息列表
   repeated MessageBroadcast messages = 2;
 }
 
@@ -147,7 +146,7 @@ message ServerNotification {
   UserEventType event_type = 1;
   string        user_id    = 2;
   string        username   = 3;
-  string        message    = 4; // 例如 "JohnDoe 加入了聊天室"
+  string        message    = 4; // 例如 "加入了聊天室"
 }
 
 // 通用的错误响应

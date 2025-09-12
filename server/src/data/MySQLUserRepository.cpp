@@ -153,7 +153,6 @@ std::vector<User> MySQLUserRepository::getAllUsers() {
 
         soci::indicator id_ind, username_ind, hashed_password_ind, salt_ind, created_at_ind;
 
-        // 准备语句：逐字段绑定
         soci::statement st = (sql.prepare <<
             "SELECT id, username, hashed_password, salt, created_at FROM users",
             soci::into(id_val, id_ind),
