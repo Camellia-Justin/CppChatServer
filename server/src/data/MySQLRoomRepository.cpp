@@ -5,9 +5,10 @@
 
 std::optional<Room> MySQLRoomRepository::findByRoomId(long long id){
     auto conWrapper = ConnectionWrapper(&ConnectionPool::getInstance(), ConnectionPool::getInstance().getConnection());
-    soci::session& sql = *conWrapper;
-    soci::transaction tr(sql);
     try{
+        
+        soci::session& sql = *conWrapper;
+        soci::transaction tr(sql);
         long long roomid, creator_id;
         std::string roomname;
         std::tm created_at_tm = {};
@@ -36,16 +37,40 @@ std::optional<Room> MySQLRoomRepository::findByRoomId(long long id){
         }
         std::cout << "[DEBUG] RoomRepository: Room not found." << std::endl;
         return std::nullopt;
-    }catch(const std::exception& e){
-        std::cerr << "Error finding room by ID: " << e.what() << std::endl;
+    }
+    catch (const soci::soci_error& e) {
+        soci::soci_error::error_category category = e.get_error_category();
+        if (category == soci::soci_error::error_category::no_data) {
+            std::cout << "[DEBUG] No data found for query." << std::endl;
+            return std::nullopt;
+        }
+        else if (category == soci::soci_error::error_category::connection_error) {
+            std::cerr << "[ERROR] Connection error: " << e.what() << std::endl;
+            conWrapper.markAsInvalid();
+            return std::nullopt;
+        }
+        else if (category == soci::soci_error::error_category::system_error) {
+            std::cerr << "[ERROR] System/Driver error: " << e.what() << std::endl;
+            conWrapper.markAsInvalid();
+            return std::nullopt;
+        }
+        else {
+            std::cerr << "[ERROR] Database operation error: " << e.what()
+                << " (Category: " << category << ")" << std::endl;
+            throw;
+        }
+    }
+    catch (const std::exception& e) {
+        std::cerr << "[ERROR] Unexpected standard exception: " << e.what() << std::endl;
+        conWrapper.markAsInvalid();
         return std::nullopt;
     }
 }
 std::optional<Room> MySQLRoomRepository::findByRoomName(const std::string& name){
     auto conWrapper = ConnectionWrapper(&ConnectionPool::getInstance(), ConnectionPool::getInstance().getConnection());
-    soci::session& sql = *conWrapper;
-    soci::transaction tr(sql);
     try{
+        soci::session& sql = *conWrapper;
+        soci::transaction tr(sql);
         long long roomid, creator_id;
         std::string roomname;
         std::tm created_at_tm = {};
@@ -75,16 +100,40 @@ std::optional<Room> MySQLRoomRepository::findByRoomName(const std::string& name)
         std::cout << "[DEBUG] RoomRepository: Room not found." << std::endl;
         return std::nullopt;
 
-    }catch(const std::exception& e){
-        std::cerr << "Error finding room by name: " << e.what() << std::endl;
+    }
+    catch (const soci::soci_error& e) {
+        soci::soci_error::error_category category = e.get_error_category();
+        if (category == soci::soci_error::error_category::no_data) {
+            std::cout << "[DEBUG] No data found for query." << std::endl;
+            return std::nullopt;
+        }
+        else if (category == soci::soci_error::error_category::connection_error) {
+            std::cerr << "[ERROR] Connection error: " << e.what() << std::endl;
+            conWrapper.markAsInvalid();
+            return std::nullopt;
+        }
+        else if (category == soci::soci_error::error_category::system_error) {
+            std::cerr << "[ERROR] System/Driver error: " << e.what() << std::endl;
+            conWrapper.markAsInvalid();
+            return std::nullopt;
+        }
+        else {
+            std::cerr << "[ERROR] Database operation error: " << e.what()
+                << " (Category: " << category << ")" << std::endl;
+            throw;
+        }
+    }
+    catch (const std::exception& e) {
+        std::cerr << "[ERROR] Unexpected standard exception: " << e.what() << std::endl;
+        conWrapper.markAsInvalid();
         return std::nullopt;
     }
 }
 std::optional<Room> MySQLRoomRepository::findByCreatorId(long long creatorid){
     auto conWrapper = ConnectionWrapper(&ConnectionPool::getInstance(), ConnectionPool::getInstance().getConnection());
-    soci::session& sql = *conWrapper;
-    soci::transaction tr(sql);
     try{
+        soci::session& sql = *conWrapper;
+        soci::transaction tr(sql);
         long long roomid, creator_id;
         std::string roomname;
         std::tm created_at_tm = {};
@@ -113,17 +162,41 @@ std::optional<Room> MySQLRoomRepository::findByCreatorId(long long creatorid){
         }
         std::cout << "[DEBUG] RoomRepository: Room not found." << std::endl;
         return std::nullopt;
-    }catch(const std::exception& e){
-        std::cerr << "Error finding room by creator ID: " << e.what() << std::endl;
+    }
+    catch (const soci::soci_error& e) {
+        soci::soci_error::error_category category = e.get_error_category();
+        if (category == soci::soci_error::error_category::no_data) {
+            std::cout << "[DEBUG] No data found for query." << std::endl;
+            return std::nullopt;
+        }
+        else if (category == soci::soci_error::error_category::connection_error) {
+            std::cerr << "[ERROR] Connection error: " << e.what() << std::endl;
+            conWrapper.markAsInvalid();
+            return std::nullopt;
+        }
+        else if (category == soci::soci_error::error_category::system_error) {
+            std::cerr << "[ERROR] System/Driver error: " << e.what() << std::endl;
+            conWrapper.markAsInvalid();
+            return std::nullopt;
+        }
+        else {
+            std::cerr << "[ERROR] Database operation error: " << e.what()
+                << " (Category: " << category << ")" << std::endl;
+            throw;
+        }
+    }
+    catch (const std::exception& e) {
+        std::cerr << "[ERROR] Unexpected standard exception: " << e.what() << std::endl;
+        conWrapper.markAsInvalid();
         return std::nullopt;
     }
 }
 std::vector<Room> MySQLRoomRepository::getAllRooms() {
     std::vector<Room> rooms;
-
+    auto conWrapper = ConnectionWrapper(&ConnectionPool::getInstance(),
+        ConnectionPool::getInstance().getConnection());
     try {
-        auto conWrapper = ConnectionWrapper(&ConnectionPool::getInstance(),
-            ConnectionPool::getInstance().getConnection());
+        
         soci::session& sql = *conWrapper;
 
         long long id_val;
@@ -162,8 +235,32 @@ std::vector<Room> MySQLRoomRepository::getAllRooms() {
 
             rooms.push_back(room);
         }
-    } catch (const std::exception& e) {
-        std::cerr << "Database error in getAllRooms: " << e.what() << std::endl;
+    } 
+    catch (const soci::soci_error& e) {
+        soci::soci_error::error_category category = e.get_error_category();
+        if (category == soci::soci_error::error_category::no_data) {
+            std::cout << "[DEBUG] No data found for query." << std::endl;
+            rooms.clear();
+        }
+        else if (category == soci::soci_error::error_category::connection_error) {
+            std::cerr << "[ERROR] Connection error: " << e.what() << std::endl;
+            conWrapper.markAsInvalid();
+            rooms.clear();
+        }
+        else if (category == soci::soci_error::error_category::system_error) {
+            std::cerr << "[ERROR] System/Driver error: " << e.what() << std::endl;
+            conWrapper.markAsInvalid();
+            rooms.clear();
+        }
+        else {
+            std::cerr << "[ERROR] Database operation error: " << e.what()
+                << " (Category: " << category << ")" << std::endl;
+            throw;
+        }
+    }
+    catch (const std::exception& e) {
+        std::cerr << "[ERROR] Unexpected standard exception: " << e.what() << std::endl;
+        conWrapper.markAsInvalid();
         rooms.clear();
     }
 
@@ -174,10 +271,11 @@ bool MySQLRoomRepository::updateRoom(Room& room){
         std::cerr << "Invalid room ID for update." << std::endl;
         return false;
     }
-    auto conWrapper = ConnectionWrapper(&ConnectionPool::getInstance(), ConnectionPool::getInstance().getConnection());
-    soci::session& sql = *conWrapper;
-    soci::transaction tr(sql);
+    auto conWrapper = ConnectionWrapper(&ConnectionPool::getInstance(),
+        ConnectionPool::getInstance().getConnection());
     try{
+        soci::session& sql = *conWrapper;
+        soci::transaction tr(sql);
         soci::statement st=(sql.prepare<<"UPDATE rooms SET name = :name WHERE id = :id",
             soci::use(room.getName(),"name"),
 		    soci::use(room.getId(), "id"));
@@ -192,16 +290,40 @@ bool MySQLRoomRepository::updateRoom(Room& room){
             return false;
         }
     }
+    catch (const soci::soci_error& e) {
+        soci::soci_error::error_category category = e.get_error_category();
+        if (category == soci::soci_error::error_category::no_data) {
+            std::cout << "[DEBUG] No data found for query." << std::endl;
+            return false;
+        }
+        else if (category == soci::soci_error::error_category::connection_error) {
+            std::cerr << "[ERROR] Connection error: " << e.what() << std::endl;
+            conWrapper.markAsInvalid();
+            return false;
+        }
+        else if (category == soci::soci_error::error_category::system_error) {
+            std::cerr << "[ERROR] System/Driver error: " << e.what() << std::endl;
+            conWrapper.markAsInvalid();
+            return false;
+        }
+        else {
+            std::cerr << "[ERROR] Database operation error: " << e.what()
+                << " (Category: " << category << ")" << std::endl;
+            throw;
+        }
+    }
     catch (const std::exception& e) {
-        std::cerr << "Error updating room: " << e.what() << std::endl;
+        std::cerr << "[ERROR] Unexpected standard exception: " << e.what() << std::endl;
+        conWrapper.markAsInvalid();
         return false;
     }
 }
 bool MySQLRoomRepository::addRoom(Room& room){
-    auto conWrapper = ConnectionWrapper(&ConnectionPool::getInstance(), ConnectionPool::getInstance().getConnection());
-    soci::session& sql = *conWrapper;
-    soci::transaction tr(sql);
+    auto conWrapper = ConnectionWrapper(&ConnectionPool::getInstance(),
+        ConnectionPool::getInstance().getConnection());
     try{
+        soci::session& sql = *conWrapper;
+        soci::transaction tr(sql);
         sql << "INSERT INTO rooms (name, creator_id) VALUES (:name, :creator_id)",
             soci::use(room.getName(), "name"),
             soci::use(room.getCreatorId(), "creator_id");
@@ -228,24 +350,74 @@ bool MySQLRoomRepository::addRoom(Room& room){
         }
         catch (const std::exception& e) {
             std::cerr << "Error retrieving created_at: " << e.what() << std::endl;
+            return false;
         }
         tr.commit();
         return true;
-    }catch(const std::exception& e){
-        std::cerr << "Error adding room: " << e.what() << std::endl;
+    }
+    catch (const soci::soci_error& e) {
+        soci::soci_error::error_category category = e.get_error_category();
+        if (category == soci::soci_error::error_category::no_data) {
+            std::cout << "[DEBUG] No data found for query." << std::endl;
+            return false;
+        }
+        else if (category == soci::soci_error::error_category::connection_error) {
+            std::cerr << "[ERROR] Connection error: " << e.what() << std::endl;
+            conWrapper.markAsInvalid();
+            return false;
+        }
+        else if (category == soci::soci_error::error_category::system_error) {
+            std::cerr << "[ERROR] System/Driver error: " << e.what() << std::endl;
+            conWrapper.markAsInvalid();
+            return false;
+        }
+        else {
+            std::cerr << "[ERROR] Database operation error: " << e.what()
+                << " (Category: " << category << ")" << std::endl;
+            throw;
+        }
+    }
+    catch (const std::exception& e) {
+        std::cerr << "[ERROR] Unexpected standard exception: " << e.what() << std::endl;
+        conWrapper.markAsInvalid();
         return false;
     }
 }
 bool MySQLRoomRepository::removeRoom(long long id){
-    auto conWrapper = ConnectionWrapper(&ConnectionPool::getInstance(), ConnectionPool::getInstance().getConnection());
-    soci::session& sql = *conWrapper;
-    soci::transaction tr(sql);
+    auto conWrapper = ConnectionWrapper(&ConnectionPool::getInstance(),
+        ConnectionPool::getInstance().getConnection());
     try{
+        soci::session& sql = *conWrapper;
+        soci::transaction tr(sql);
         sql<<"DELETE FROM rooms WHERE id = :id", soci::use(id,"id");
         tr.commit();
         return true;
-    }catch(const std::exception& e){
-        std::cerr << "Error removing room: " << e.what() << std::endl;
+    }
+    catch (const soci::soci_error& e) {
+        soci::soci_error::error_category category = e.get_error_category();
+        if (category == soci::soci_error::error_category::no_data) {
+            std::cout << "[DEBUG] No data found for query." << std::endl;
+            return false;
+        }
+        else if (category == soci::soci_error::error_category::connection_error) {
+            std::cerr << "[ERROR] Connection error: " << e.what() << std::endl;
+            conWrapper.markAsInvalid();
+            return false;
+        }
+        else if (category == soci::soci_error::error_category::system_error) {
+            std::cerr << "[ERROR] System/Driver error: " << e.what() << std::endl;
+            conWrapper.markAsInvalid();
+            return false;
+        }
+        else {
+            std::cerr << "[ERROR] Database operation error: " << e.what()
+                << " (Category: " << category << ")" << std::endl;
+            throw;
+        }
+    }
+    catch (const std::exception& e) {
+        std::cerr << "[ERROR] Unexpected standard exception: " << e.what() << std::endl;
+        conWrapper.markAsInvalid();
         return false;
     }
 }

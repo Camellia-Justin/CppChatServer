@@ -34,7 +34,6 @@ void AuthService::handleLogin(std::shared_ptr<Session> session, const chat::Logi
         err_resp->set_error_message("Password incorrect.");
         session->send(response_envelope);
     }
-    
 }
 void AuthService::handleRegister(std::shared_ptr<Session> session, const chat::RegistrationRequest& registrationRequest){
 	chat::Envelope response_envelope;

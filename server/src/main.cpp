@@ -16,9 +16,10 @@ int main() {
         "password=" + db_config.at("password").get<std::string>() + " " +
         "host=" + db_config.at("host").get<std::string>() + " " +
         "port=" + std::to_string(db_config.at("port").get<int>());
-        ConnectionPool::getInstance().init(conn_str, 10);
-       
+        
         asio::io_context io_context;
+		ConnectionPool::initInstance(io_context);
+        ConnectionPool::getInstance().init(conn_str, 10);
         auto work_guard = asio::make_work_guard(io_context.get_executor());
         unsigned short port = config.at("server").at("port").get<unsigned short>();
         Server server(io_context, port);

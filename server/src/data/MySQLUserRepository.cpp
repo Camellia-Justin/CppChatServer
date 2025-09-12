@@ -8,9 +8,9 @@
 
 std::optional<User> MySQLUserRepository::findByUsername(const std::string& username) {
     auto conWrapper = ConnectionWrapper(&ConnectionPool::getInstance(), ConnectionPool::getInstance().getConnection());
-    soci::session& sql = *conWrapper;
-
     try {
+        
+        soci::session& sql = *conWrapper;
         int db_id;
         std::string db_username, hashed_password, salt;
         std::tm created_at_tm = {};
@@ -45,16 +45,40 @@ std::optional<User> MySQLUserRepository::findByUsername(const std::string& usern
         std::cout << "[DEBUG] UserRepository: User not found." << std::endl;
         return std::nullopt;
     }
+    catch (const soci::soci_error& e) {
+        soci::soci_error::error_category category = e.get_error_category();
+        if (category == soci::soci_error::error_category::no_data) {
+            std::cout << "[DEBUG] No data found for query." << std::endl;
+            return std::nullopt;
+        }
+        else if (category == soci::soci_error::error_category::connection_error) {
+            std::cerr << "[ERROR] Connection error: " << e.what() << std::endl;
+            conWrapper.markAsInvalid();
+            return std::nullopt;
+        }
+        else if (category == soci::soci_error::error_category::system_error) {
+            std::cerr << "[ERROR] System/Driver error: " << e.what() << std::endl;
+            conWrapper.markAsInvalid();
+            return std::nullopt;
+        }
+        else {
+            std::cerr << "[ERROR] Database operation error: " << e.what()
+                << " (Category: " << category << ")" << std::endl;
+            throw;
+        }
+    }
     catch (const std::exception& e) {
-        std::cerr << "[ERROR] UserRepository: " << e.what() << std::endl;
+        std::cerr << "[ERROR] Unexpected standard exception: " << e.what() << std::endl;
+        conWrapper.markAsInvalid();
         return std::nullopt;
     }
 }
 std::optional<User> MySQLUserRepository::findByUserId(long long id){
     auto conWrapper = ConnectionWrapper(&ConnectionPool::getInstance(), ConnectionPool::getInstance().getConnection());
-    soci::session& sql = *conWrapper;
-    soci::transaction tr(sql);
     try{
+        
+        soci::session& sql = *conWrapper;
+        soci::transaction tr(sql);
         int db_id;
         std::string db_username, hashed_password, salt;
         std::tm created_at_tm = {};
@@ -87,17 +111,38 @@ std::optional<User> MySQLUserRepository::findByUserId(long long id){
         std::cout << "[DEBUG] UserRepository: User not found." << std::endl;
         return std::nullopt;
     }
+    catch (const soci::soci_error& e) {
+        soci::soci_error::error_category category = e.get_error_category();
+        if (category == soci::soci_error::error_category::no_data) {
+            std::cout << "[DEBUG] No data found for query." << std::endl;
+            return std::nullopt;
+        }
+        else if (category == soci::soci_error::error_category::connection_error) {
+            std::cerr << "[ERROR] Connection error: " << e.what() << std::endl;
+            conWrapper.markAsInvalid();
+            return std::nullopt;
+        }
+        else if (category == soci::soci_error::error_category::system_error) {
+            std::cerr << "[ERROR] System/Driver error: " << e.what() << std::endl;
+            conWrapper.markAsInvalid();
+            return std::nullopt;
+        }
+        else {
+            std::cerr << "[ERROR] Database operation error: " << e.what()
+                << " (Category: " << category << ")" << std::endl;
+            throw;
+        }
+    }
     catch (const std::exception& e) {
-        std::cerr << "[ERROR] UserRepository: " << e.what() << std::endl;
+        std::cerr << "[ERROR] Unexpected standard exception: " << e.what() << std::endl;
+        conWrapper.markAsInvalid();
         return std::nullopt;
     }
 }
 std::vector<User> MySQLUserRepository::getAllUsers() {
     std::vector<User> users;
-
+    auto conWrapper = ConnectionWrapper(&ConnectionPool::getInstance(), ConnectionPool::getInstance().getConnection());
     try {
-        auto conWrapper = ConnectionWrapper(&ConnectionPool::getInstance(),
-            ConnectionPool::getInstance().getConnection());
         soci::session& sql = *conWrapper;
 
         long long id_val;
@@ -141,8 +186,31 @@ std::vector<User> MySQLUserRepository::getAllUsers() {
         }
 
     }
+    catch (const soci::soci_error& e) {
+        soci::soci_error::error_category category = e.get_error_category();
+        if (category == soci::soci_error::error_category::no_data) {
+            std::cout << "[DEBUG] No data found for query." << std::endl;
+            users.clear();
+        }
+        else if (category == soci::soci_error::error_category::connection_error) {
+            std::cerr << "[ERROR] Connection error: " << e.what() << std::endl;
+            conWrapper.markAsInvalid();
+            users.clear();
+        }
+        else if (category == soci::soci_error::error_category::system_error) {
+            std::cerr << "[ERROR] System/Driver error: " << e.what() << std::endl;
+            conWrapper.markAsInvalid();
+            users.clear();
+        }
+        else {
+            std::cerr << "[ERROR] Database operation error: " << e.what()
+                << " (Category: " << category << ")" << std::endl;
+            throw;
+        }
+    }
     catch (const std::exception& e) {
-        std::cerr << "Database error in getAllUsers: " << e.what() << std::endl;
+        std::cerr << "[ERROR] Unexpected standard exception: " << e.what() << std::endl;
+        conWrapper.markAsInvalid();
         users.clear();
     }
 
@@ -150,9 +218,9 @@ std::vector<User> MySQLUserRepository::getAllUsers() {
 }
 bool MySQLUserRepository::updateUser(User& user){
     auto conWrapper = ConnectionWrapper(&ConnectionPool::getInstance(), ConnectionPool::getInstance().getConnection());
-    soci::session& sql = *conWrapper;
-    soci::transaction tr(sql);
     try{
+        soci::session& sql = *conWrapper;
+        soci::transaction tr(sql);
         soci::statement st=(sql.prepare<<"UPDATE users SET username = :username, hashed_password = :hashed_password, salt = :salt WHERE id = :id",
         soci::use(user.getUsername(),"username"),
         soci::use(user.getHashedPassword(),"hashed_password"),
@@ -168,16 +236,39 @@ bool MySQLUserRepository::updateUser(User& user){
             return false;
         }
     }
+    catch (const soci::soci_error& e) {
+        soci::soci_error::error_category category = e.get_error_category();
+        if (category == soci::soci_error::error_category::no_data) {
+            std::cout << "[DEBUG] No data found for query." << std::endl;
+            return false;
+        }
+        else if (category == soci::soci_error::error_category::connection_error) {
+            std::cerr << "[ERROR] Connection error: " << e.what() << std::endl;
+            conWrapper.markAsInvalid();
+            return false;
+        }
+        else if (category == soci::soci_error::error_category::system_error) {
+            std::cerr << "[ERROR] System/Driver error: " << e.what() << std::endl;
+            conWrapper.markAsInvalid();
+            return false;
+        }
+        else {
+            std::cerr << "[ERROR] Database operation error: " << e.what()
+                << " (Category: " << category << ")" << std::endl;
+            throw;
+        }
+    }
     catch (const std::exception& e) {
-        std::cerr << "Error updating user: " << e.what() << std::endl;
+        std::cerr << "[ERROR] Unexpected standard exception: " << e.what() << std::endl;
+        conWrapper.markAsInvalid();
         return false;
     }
 }
 bool MySQLUserRepository::addUser(User& user){
     auto conWrapper = ConnectionWrapper(&ConnectionPool::getInstance(), ConnectionPool::getInstance().getConnection());
-    soci::session& sql = *conWrapper;
-    soci::transaction tr(sql);
     try{
+        soci::session& sql = *conWrapper;
+        soci::transaction tr(sql);
         sql<<"INSERT INTO users (username, hashed_password, salt) VALUES (:username, :hashed_password, :salt)",
     		soci::use(user.getUsername(), "username"),
             soci::use(user.getHashedPassword(), "hashed_password"),
@@ -198,7 +289,31 @@ bool MySQLUserRepository::addUser(User& user){
             std::cerr << "Error retrieving created_at: " << e.what() << std::endl;
             return false;
         }
-    }catch(const std::exception& e){
+    }
+    catch (const soci::soci_error& e) {
+        soci::soci_error::error_category category = e.get_error_category();
+        if (category == soci::soci_error::error_category::no_data) {
+            std::cout << "[DEBUG] No data found for query." << std::endl;
+            return false;
+        }
+        else if (category == soci::soci_error::error_category::connection_error) {
+            std::cerr << "[ERROR] Connection error: " << e.what() << std::endl;
+            conWrapper.markAsInvalid();
+            return false;
+        }
+        else if (category == soci::soci_error::error_category::system_error) {
+            std::cerr << "[ERROR] System/Driver error: " << e.what() << std::endl;
+            conWrapper.markAsInvalid();
+            return false;
+        }
+        else {
+            std::cerr << "[ERROR] Database operation error: " << e.what()
+                << " (Category: " << category << ")" << std::endl;
+            throw;
+        }
+    }
+    catch(const std::exception& e){
+        conWrapper.markAsInvalid();
         std::cerr << "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!" << std::endl;
         std::cerr << "!!! DATABASE EXCEPTION CAUGHT in addUser !!!" << std::endl;
         std::cerr << "!!! Exception Type: " << typeid(e).name() << std::endl;
@@ -209,15 +324,39 @@ bool MySQLUserRepository::addUser(User& user){
 }
 bool MySQLUserRepository::removeUser(long long id){
     auto conWrapper = ConnectionWrapper(&ConnectionPool::getInstance(), ConnectionPool::getInstance().getConnection());
-    soci::session& sql = *conWrapper;
-    soci::transaction tr(sql);
     try{
+        soci::session& sql = *conWrapper;
+        soci::transaction tr(sql);
         sql << "DELETE FROM users WHERE id = :id", soci::use(id,"id");
         tr.commit();
         return true;
 
-    }catch(const std::exception& e){
-        std::cerr << "Error removing user: " << e.what() << std::endl;
+    }
+    catch (const soci::soci_error& e) {
+        soci::soci_error::error_category category = e.get_error_category();
+        if (category == soci::soci_error::error_category::no_data) {
+            std::cout << "[DEBUG] No data found for query." << std::endl;
+            return false;
+        }
+        else if (category == soci::soci_error::error_category::connection_error) {
+            std::cerr << "[ERROR] Connection error: " << e.what() << std::endl;
+            conWrapper.markAsInvalid();
+            return false;
+        }
+        else if (category == soci::soci_error::error_category::system_error) {
+            std::cerr << "[ERROR] System/Driver error: " << e.what() << std::endl;
+            conWrapper.markAsInvalid();
+            return false;
+        }
+        else {
+            std::cerr << "[ERROR] Database operation error: " << e.what()
+                << " (Category: " << category << ")" << std::endl;
+            throw;
+        }
+    }
+    catch (const std::exception& e) {
+        std::cerr << "[ERROR] Unexpected standard exception: " << e.what() << std::endl;
+        conWrapper.markAsInvalid();
         return false;
     }
 }

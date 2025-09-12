@@ -156,13 +156,8 @@ void Client::handle_server_message(const Envelope& envelope) {
         case Envelope::kMessageBroadcast: {
             const auto& msg = envelope.message_broadcast();
             std::string time_str = google::protobuf::util::TimeUtil::ToString(msg.timestamp());
-            if (msg.room_name().empty()) { // 私聊
-                std::cout << "[Private from " << msg.from_username() << " at " << time_str << "]: " 
-                          << msg.content() << std::endl;
-            } else { // 房间/公聊
                 std::cout << "[" << msg.room_name() << " | " << msg.from_username() << " at " << time_str << "]: " 
                           << msg.content() << std::endl;
-            }
             break;
         }
         case Envelope::kLoginResponse: {
