@@ -29,7 +29,6 @@ public:
         send(register_envelope);
     }
     void onConnect_login() {
-        ++connected_clients;
         std::string username = "testuser_" + std::to_string(reinterpret_cast<uintptr_t>(this));
 
         Envelope login_envelope;
@@ -97,6 +96,71 @@ private:
 };
 
 
+//int main(int argc, char* argv[]) {
+//    try{
+//        if (argc < 4) {
+//            std::cerr << "Usage: conn_test <host> <port> <num_clients>\n";
+//            return 1;
+//        }
+//        const std::string host = argv[1];
+//        const unsigned short port = std::stoi(argv[2]);
+//        const int num_clients = std::stoi(argv[3]);
+//
+//        asio::io_context io_context;
+//        auto work_guard = asio::make_work_guard(io_context);
+//
+//        std::vector<std::thread> threads;
+//        int num_threads = std::thread::hardware_concurrency();
+//        for (int i = 0; i < num_threads; ++i) {
+//            threads.emplace_back([&]() { io_context.run(); });
+//        }
+//
+//        std::vector<std::shared_ptr<TestClient>> clients;
+//        for (int i = 0; i < num_clients; ++i) {
+//            auto client = std::make_shared<TestClient>(io_context);
+//            clients.push_back(client);
+//
+//            client->connect(host, port, [client](const asio::error_code& ec) {
+//                if (!ec) {
+//                    ++connected_clients;
+//                }
+//                else {
+//                    if (ec.value() == WSAENOBUFS) { // 10055
+//                        std::cout << "Total connections established: " << connected_clients << std::endl;
+//                        std::cerr << "[Error] No buffer space available, reached system limit." << std::endl;
+//                    }
+//                    else {
+//                        std::cerr << "Connect failed: " << ec.message()
+//                            << " (" << ec.value() << ")" << std::endl;
+//                    }
+//                }
+//                });
+//
+//            // 避免瞬间全连上
+//            std::this_thread::sleep_for(std::chrono::milliseconds(5));
+//        }
+//        // 等待所有连接建立
+//        std::this_thread::sleep_for(std::chrono::seconds(10));
+//        std::cout << "Total connections established: " << connected_clients << std::endl;
+//
+//        work_guard.reset();
+//        for (auto& t : threads) t.join();
+//    }
+//    catch (const asio::error_code& ec) {
+//        if (ec.value() == WSAENOBUFS) { // 10055
+//            std::cout << "Total connections established: " << connected_clients << std::endl;
+//            std::cerr << "[Error] No buffer space available, reached system limit." << std::endl;
+//        }
+//    }
+//    catch (std::exception&e) {
+//		std::cout << "Exception: " << e.what() << std::endl;
+//        std::cout << "Total connections established: " << connected_clients << std::endl;
+//    }
+//
+//    
+//    return 0;
+//}
+
 int main(int argc, char* argv[]) {
     if (argc < 4) {
         std::cerr << "Usage: chat_client <host> <port>\n";
@@ -143,7 +207,8 @@ int main(int argc, char* argv[]) {
         client->start_sending();
 	}
     std::cout << "All clients initiated. Running test for 60 seconds...\n";
-   while(1){
+    auto start_time = std::chrono::steady_clock::now();
+   while(std::chrono::steady_clock::now() - start_time < std::chrono::seconds(60)){
         std::cout << "Connected: " << connected_clients
             << ", Logged in: " << successful_logins
             << ", Messages Sent: " << messages_sent << std::endl;
