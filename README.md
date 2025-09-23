@@ -37,7 +37,7 @@
 
 *   **Common (共享层)**: 存放客户端与服务器共享的代码，包括 Protobuf 协议定义和数据库实体类 (`domain`)。
 *   **Server (服务器)**:
-    *   **Network (网络层)**: 封装 `session`，处理底层异步 I/O、粘包和协议解析。
+    *   **Session (网络层)**: 封装 `session`，处理底层异步 I/O、粘包和协议解析。
     *   **Data (数据访问层)**: 通过**仓库模式 (Repository Pattern)** 封装所有数据库操作，使用**连接池**管理连接。
     *   **Service (服务层)**: 实现所有核心业务逻辑，如认证、房间管理、消息转发。
     *   **Core (核心层)**: 包含 `Server` 主类和 `SessionManager`，负责组装和协调所有模块。
@@ -59,14 +59,6 @@
 ### 3. 安装项目依赖
 
 在 vcpkg 根目录下运行以下命令，安装本项目所需的所有第三方库。
-
-```bash
-# 对于 Linux
-./vcpkg install asio protobuf soci[mysql] nlohmann-json --triplet x64-linux
-
-# 对于 Windows
-.\vcpkg.exe install asio protobuf soci[mysql] nlohmann-json --triplet x64-windows
-```
 
 ### 4. 数据库设置
 
